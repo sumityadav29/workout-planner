@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Workout Plan</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --bg: #0A0A0A;
+            --surface: #111111;
+            --border: #1C1C1C;
+            --text-primary: #F0F0F0;
+            --text-secondary: #888;
+            --text-muted: #3A3A3A;
+
+            --push: #FF6B35;
+            --pull: #3B82F6;
+            --legs: #22C55E;
+            --upper: #A855F7;
+            --run: #14B8A6;
+            --rest: #6B7280;
+        }
+
+        html, body {
+            height: 100%;
+            background: var(--bg);
+            color: var(--text-primary);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+        }
+
+        .app {
+            height: 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ── Slider ── */
+        .slider-track {
+            display: flex;
+            flex: 1;
+            will-change: transform;
+            transition: transform 0.38s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            cursor: grab;
+            user-select: none;
+        }
+
+        .slider-track.dragging {
+            transition: none;
+            cursor: grabbing;
+        }
+
+        .slide {
+            min-width: 100vw;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ── Card Header ── */
+        .card-head {
+            padding: 52px 28px 20px;
+            flex-shrink: 0;
+        }
+
+        .day-label {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .day-name {
+            font-size: 34px;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            line-height: 1;
+            margin-bottom: 14px;
+        }
+
+        .day-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 12px;
+            border-radius: 100px;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+        }
+
+        .badge-push  { background: rgba(255,107,53,.12); color: var(--push); }
+        .badge-pull  { background: rgba(59,130,246,.12); color: var(--pull); }
+        .badge-legs  { background: rgba(34,197,94,.12);  color: var(--legs); }
+        .badge-upper { background: rgba(168,85,247,.12); color: var(--upper); }
+        .badge-run   { background: rgba(20,184,166,.12); color: var(--run); }
+        .badge-rest  { background: rgba(107,114,128,.12);color: var(--rest); }
+
+        .sep {
+            height: 1px;
+            background: var(--border);
+            margin: 0 28px;
+            flex-shrink: 0;
+        }
+
+        /* ── Exercise List ── */
+        .exercise-list {
+            flex: 1;
+            padding: 8px 28px 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .ex-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 13px 0;
+            border-bottom: 1px solid #161616;
+            flex-shrink: 0;
+        }
+
+        .ex-row:last-child { border-bottom: none; }
+
+        .ex-num {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: #181818;
+            border: 1px solid #222;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            flex-shrink: 0;
+        }
+
+        .ex-info { flex: 1; min-width: 0; }
+
+        .ex-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .ex-muscles {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .ex-meta { text-align: right; flex-shrink: 0; }
+
+        .ex-sets {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .ex-rest {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        /* ── Run Card ── */
+        .run-body {
+            flex: 1;
+            padding: 20px 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            overflow: hidden;
+        }
+
+        .run-block {
+            background: #111;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 18px 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .run-block-label {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .run-block-value {
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: var(--run);
+            margin-bottom: 6px;
+        }
+
+        .run-block-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.55;
+        }
+
+        /* ── Coming Soon ── */
+        .coming-soon {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 28px;
+        }
+
+        .cs-ring {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            border: 2px dashed #222;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 6px;
+        }
+
+        .cs-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #222;
+        }
+
+        .cs-muscles {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .cs-label {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        /* ── Rest Card ── */
+        .rest-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 28px;
+        }
+
+        .rest-orb {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 40% 40%, #1A1A1A, #0F0F0F);
+            border: 1px solid #1C1C1C;
+            margin-bottom: 8px;
+        }
+
+        .rest-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--rest);
+        }
+
+        .rest-desc {
+            font-size: 13px;
+            color: var(--text-muted);
+            text-align: center;
+            line-height: 1.65;
+        }
+
+        /* ── Nav Dots ── */
+        .nav {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            padding: 16px 28px;
+            padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+            flex-shrink: 0;
+        }
+
+        .dot {
+            height: 5px;
+            width: 5px;
+            border-radius: 100px;
+            background: #2A2A2A;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .dot.active {
+            width: 20px;
+            background: var(--text-primary);
+        }
+
+        /* ── Today Indicator ── */
+        .today-dot {
+            position: absolute;
+            top: 52px;
+            right: 28px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--legs);
+            box-shadow: 0 0 8px var(--legs);
+        }
+    </style>
+</head>
+<body>
+<div class="app">
+    <div class="slider-track" id="track">
+
+        <!-- 0: Monday – Push -->
+        <div class="slide">
+            <div class="card-head">
+                <div class="day-label">Day 1</div>
+                <div class="day-name">Monday</div>
+                <span class="day-badge badge-push">Push</span>
+            </div>
+            <div class="sep"></div>
+            <div class="coming-soon">
+                <div class="cs-ring"><div class="cs-dot"></div></div>
+                <div class="cs-muscles">Chest · Shoulders · Triceps</div>
+                <div class="cs-label">Details coming soon</div>
+            </div>
+        </div>
+
+        <!-- 1: Tuesday – Run -->
+        <div class="slide">
+            <div class="card-head">
+                <div class="day-label">Day 2</div>
+                <div class="day-name">Tuesday</div>
+                <span class="day-badge badge-run">Cardio</span>
+            </div>
+            <div class="sep"></div>
+            <div class="run-body">
+                <div class="run-block">
+                    <div class="run-block-label">Duration</div>
+                    <div class="run-block-value">30 – 40 min</div>
+                    <div class="run-block-desc">Zone 2 at conversational pace. Optimal for fat oxidation while preserving muscle.</div>
+                </div>
+                <div class="run-block">
+                    <div class="run-block-label">Intensity</div>
+                    <div class="run-block-value">Zone 2</div>
+                    <div class="run-block-desc">~65% max HR. You should be able to hold a full sentence. If you can't, slow down.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2: Wednesday – Pull -->
+        <div class="slide">
+            <div class="card-head">
+                <div class="day-label">Day 3</div>
+                <div class="day-name">Wednesday</div>
+                <span class="day-badge badge-pull">Pull</span>
+            </div>
+            <div class="sep"></div>
+            <div class="coming-soon">
+                <div class="cs-ring"><div class="cs-dot"></div></div>
+                <div class="cs-muscles">Back · Biceps</div>
+                <div class="cs-label">Details coming soon</div>
+            </div>
+        </div>
+
+        <!-- 3: Thursday – Legs -->
+        <div class="slide" style="position:relative;">
+            <div class="card-head">
+                <div class="day-label">Day 4</div>
+                <div class="day-name">Thursday</div>
+                <span class="day-badge badge-legs">Legs</span>
+            </div>
+            <div class="sep"></div>
+            <div class="exercise-list">
+                <div class="ex-row">
+                    <div class="ex-num">1</div>
+                    <div class="ex-info">
+                        <div class="ex-name">Back Squat</div>
+                        <div class="ex-muscles">Quads · Glutes · Strength</div>
+                    </div>
+                    <div class="ex-meta">
+                        <div class="ex-sets">4 × 4–6</div>
+                        <div class="ex-rest">3–4 min</div>
+                    </div>
+                </div>
+                <div class="ex-row">
+                    <div class="ex-num">2</div>
+                    <div class="ex-info">
+                        <div class="ex-name">Romanian Deadlift</div>
+                        <div class="ex-muscles">Hamstrings · Glutes</div>
+                    </div>
+                    <div class="ex-meta">
+                        <div class="ex-sets">3 × 8–10</div>
+                        <div class="ex-rest">2 min</div>
+                    </div>
+                </div>
+                <div class="ex-row">
+                    <div class="ex-num">3</div>
+                    <div class="ex-info">
+                        <div class="ex-name">Bulgarian Split Squat</div>
+                        <div class="ex-muscles">Quads · Glutes · Unilateral</div>
+                    </div>
+                    <div class="ex-meta">
+                        <div class="ex-sets">3 × 10–12</div>
+                        <div class="ex-rest">90s</div>
+                    </div>
+                </div>
+                <div class="ex-row">
+                    <div class="ex-num">4</div>
+                    <div class="ex-info">
+                        <div class="ex-name">Hip Thrust</div>
+                        <div class="ex-muscles">Glutes · Posture</div>
+                    </div>
+                    <div class="ex-meta">
+                        <div class="ex-sets">3 × 12–15</div>
+                        <div class="ex-rest">90s</div>
+                    </div>
+                </div>
+                <div class="ex-row">
+                    <div class="ex-num">5</div>
+                    <div class="ex-info">
+                        <div class="ex-name">Seated Leg Curl</div>
+                        <div class="ex-muscles">Hamstrings</div>
+                    </div>
+                    <div class="ex-meta">
+                        <div class="ex-sets">3 × 12–15</div>
+                        <div class="ex-rest">60s</div>
+                    </div>
+                </div>
+                <div class="ex-row">
+                    <div class="ex-num">6</div>
+                    <div class="ex-info">
+                        <div class="ex-name">Standing Calf Raise</div>
+                        <div class="ex-muscles">Calves</div>
+                    </div>
+                    <div class="ex-meta">
+                        <div class="ex-sets">4 × 15–20</div>
+                        <div class="ex-rest">60s</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4: Friday – Upper -->
+        <div class="slide">
+            <div class="card-head">
+                <div class="day-label">Day 5</div>
+                <div class="day-name">Friday</div>
+                <span class="day-badge badge-upper">Upper</span>
+            </div>
+            <div class="sep"></div>
+            <div class="coming-soon">
+                <div class="cs-ring"><div class="cs-dot"></div></div>
+                <div class="cs-muscles">Chest · Back · Shoulders · Arms</div>
+                <div class="cs-label">Details coming soon</div>
+            </div>
+        </div>
+
+        <!-- 5: Saturday – Run -->
+        <div class="slide">
+            <div class="card-head">
+                <div class="day-label">Day 6</div>
+                <div class="day-name">Saturday</div>
+                <span class="day-badge badge-run">Cardio</span>
+            </div>
+            <div class="sep"></div>
+            <div class="run-body">
+                <div class="run-block">
+                    <div class="run-block-label">Duration</div>
+                    <div class="run-block-value">20 – 30 min</div>
+                    <div class="run-block-desc">Intervals if legs feel fresh. Easy jog if still sore from Thursday's leg day.</div>
+                </div>
+                <div class="run-block">
+                    <div class="run-block-label">Intervals (if fresh)</div>
+                    <div class="run-block-value">6 – 8 rounds</div>
+                    <div class="run-block-desc">1 min hard / 2 min easy. Skip intervals and keep it Zone 2 if Thursday soreness lingers.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6: Sunday – Rest -->
+        <div class="slide">
+            <div class="card-head">
+                <div class="day-label">Day 7</div>
+                <div class="day-name">Sunday</div>
+                <span class="day-badge badge-rest">Rest</span>
+            </div>
+            <div class="sep"></div>
+            <div class="rest-body">
+                <div class="rest-orb"></div>
+                <div class="rest-title">Recovery Day</div>
+                <div class="rest-desc">
+                    This is where the gains happen.<br>
+                    Sleep 7–9 hours. Stay hydrated.<br>
+                    Light walking is fine.
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="nav" id="nav"></div>
+</div>
+
+<script>
+    const track = document.getElementById('track');
+    const nav   = document.getElementById('nav');
+    const total = 7;
+    let current = 0;
+
+    // Map JS getDay() (0=Sun) → slide index (0=Mon)
+    const dayToSlide = [6, 0, 1, 2, 3, 4, 5];
+    const today = dayToSlide[new Date().getDay()];
+
+    // Build dots
+    for (let i = 0; i < total; i++) {
+        const d = document.createElement('div');
+        d.className = 'dot';
+        d.addEventListener('click', () => goTo(i));
+        nav.appendChild(d);
+    }
+
+    function goTo(idx) {
+        current = Math.max(0, Math.min(total - 1, idx));
+        track.style.transform = `translateX(${-current * 100}vw)`;
+        document.querySelectorAll('.dot').forEach((d, i) => {
+            d.classList.toggle('active', i === current);
+        });
+    }
+
+    // Start on today's slide
+    track.style.transition = 'none';
+    goTo(today);
+    requestAnimationFrame(() => {
+        track.style.transition = '';
+    });
+
+    // ── Touch ──
+    let tx0 = 0, dragging = false;
+
+    track.addEventListener('touchstart', e => {
+        tx0 = e.touches[0].clientX;
+        dragging = true;
+        track.classList.add('dragging');
+    }, { passive: true });
+
+    track.addEventListener('touchmove', e => {
+        if (!dragging) return;
+        const dx = e.touches[0].clientX - tx0;
+        track.style.transform = `translateX(calc(${-current * 100}vw + ${dx}px))`;
+    }, { passive: true });
+
+    track.addEventListener('touchend', e => {
+        if (!dragging) return;
+        dragging = false;
+        track.classList.remove('dragging');
+        const dx = e.changedTouches[0].clientX - tx0;
+        const threshold = window.innerWidth * 0.22;
+        if (dx < -threshold) goTo(current + 1);
+        else if (dx > threshold) goTo(current - 1);
+        else goTo(current);
+    });
+
+    // ── Mouse (desktop) ──
+    let mx0 = 0, mDragging = false;
+
+    track.addEventListener('mousedown', e => {
+        mx0 = e.clientX;
+        mDragging = true;
+        track.classList.add('dragging');
+    });
+
+    document.addEventListener('mousemove', e => {
+        if (!mDragging) return;
+        const dx = e.clientX - mx0;
+        track.style.transform = `translateX(calc(${-current * 100}vw + ${dx}px))`;
+    });
+
+    document.addEventListener('mouseup', e => {
+        if (!mDragging) return;
+        mDragging = false;
+        track.classList.remove('dragging');
+        const dx = e.clientX - mx0;
+        const threshold = window.innerWidth * 0.22;
+        if (dx < -threshold) goTo(current + 1);
+        else if (dx > threshold) goTo(current - 1);
+        else goTo(current);
+    });
+
+    // ── Keyboard ──
+    document.addEventListener('keydown', e => {
+        if (e.key === 'ArrowRight') goTo(current + 1);
+        if (e.key === 'ArrowLeft')  goTo(current - 1);
+    });
+</script>
+</body>
+</html>
