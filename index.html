@@ -514,22 +514,32 @@ function goTo(i, anim = true) {
 }
 goTo(TODAY, false);
 
-let sx = 0, st = 0, drag = false;
-function dragStart(x) { sx = x; st = Date.now(); drag = true; track.classList.add('instant'); }
-function dragMove(x)  { if (!drag) return; track.style.transform = `translateX(calc(${-cur*100}vw + ${x-sx}px))`; }
+let sx = 0, sy = 0, st = 0, drag = false, isHoriz = null;
+function dragStart(x, y) { sx = x; sy = y; st = Date.now(); drag = true; isHoriz = null; track.classList.add('instant'); }
+function dragMove(e, x, y) {
+    if (!drag) return;
+    const dx = x - sx, dy = y - sy;
+    if (isHoriz === null && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) {
+        isHoriz = Math.abs(dx) > Math.abs(dy);
+    }
+    if (!isHoriz) return;
+    if (e && e.cancelable) e.preventDefault();
+    track.style.transform = `translateX(calc(${-cur*100}vw + ${dx}px))`;
+}
 function dragEnd(x) {
     if (!drag) return; drag = false; track.classList.remove('instant');
+    if (!isHoriz) return;
     const dx = x - sx, vel = Math.abs(dx) / Math.max(1, Date.now() - st);
     const thr = vel > 0.35 ? 20 : window.innerWidth * 0.22;
     if (dx < -thr && cur < TOTAL-1) goTo(cur+1);
     else if (dx > thr && cur > 0) goTo(cur-1);
     else goTo(cur);
 }
-track.addEventListener('touchstart', e => dragStart(e.touches[0].clientX), {passive:true});
-track.addEventListener('touchmove',  e => dragMove(e.touches[0].clientX),  {passive:true});
+track.addEventListener('touchstart', e => dragStart(e.touches[0].clientX, e.touches[0].clientY), {passive:true});
+track.addEventListener('touchmove',  e => dragMove(e, e.touches[0].clientX, e.touches[0].clientY), {passive:false});
 track.addEventListener('touchend',   e => dragEnd(e.changedTouches[0].clientX));
-track.addEventListener('mousedown',  e => { if (e.button === 0) dragStart(e.clientX); });
-document.addEventListener('mousemove', e => dragMove(e.clientX));
+track.addEventListener('mousedown',  e => { if (e.button === 0) dragStart(e.clientX, e.clientY); });
+document.addEventListener('mousemove', e => dragMove(null, e.clientX, e.clientY));
 document.addEventListener('mouseup',   e => dragEnd(e.clientX));
 document.addEventListener('keydown', e => {
     if (e.key === 'ArrowRight') goTo(cur+1);
