@@ -5,92 +5,104 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Workout Plan</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Source+Code+Pro:wght@500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
 tailwind.config = {
-  darkMode: 'class',
   theme: {
     extend: {
-      fontFamily: { sans: ['Inter','system-ui','sans-serif'] },
-      colors: {
-        border: 'hsl(240 5.9% 90%)',
-        input: 'hsl(240 5.9% 90%)',
-        ring: 'hsl(240 5.9% 10%)',
-        background: 'hsl(0 0% 100%)',
-        foreground: 'hsl(240 10% 3.9%)',
-        primary: { DEFAULT: 'hsl(240 5.9% 10%)', foreground: 'hsl(0 0% 98%)' },
-        secondary: { DEFAULT: 'hsl(240 4.8% 95.9%)', foreground: 'hsl(240 5.9% 10%)' },
-        muted: { DEFAULT: 'hsl(240 4.8% 95.9%)', foreground: 'hsl(240 3.8% 46.1%)' },
-        accent: { DEFAULT: 'hsl(240 4.8% 95.9%)', foreground: 'hsl(240 5.9% 10%)' },
-        card: { DEFAULT: 'hsl(0 0% 100%)', foreground: 'hsl(240 10% 3.9%)' },
+      fontFamily: {
+        sans: ['Inter','system-ui','sans-serif'],
+        mono: ['"Source Code Pro"','monospace'],
       },
-      borderRadius: { lg: '0.5rem', md: 'calc(0.5rem - 2px)', sm: 'calc(0.5rem - 4px)' },
+      colors: {
+        tan: '#EEEFE9',            // PostHog light bg
+        'tan-dark': '#E5E7E0',
+        ink: '#151515',            // primary text
+        smoke: '#D0D1C9',          // borders
+        gray2: '#8F8F8C',          // muted text
+        hblue: '#1D4AFF',          // PostHog blue
+        horange: '#F54E00',        // PostHog orange/red
+        hyellow: '#F9BD2B',        // PostHog yellow
+        hteal: '#29DBBB',
+        hpurple: '#B62AD9',
+        hgreen: '#6AA84F',
+      },
+      boxShadow: {
+        ph: '0 2px 0 0 #D0D1C9',
+        'ph-btn': '0 3px 0 0 rgba(0,0,0,.35)',
+      },
     }
   }
 }
 </script>
 <style>
   * { -webkit-tap-highlight-color: transparent; }
-  .tab-trigger[data-state=active] { background:#fff; color:hsl(240 5.9% 10%); box-shadow:0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1); }
-  .cb[data-state=checked] { background:hsl(240 5.9% 10%); border-color:hsl(240 5.9% 10%); }
+  body { background:#EEEFE9; }
+  .tab-trigger { border:1.5px solid transparent; }
+  .tab-trigger[data-state=active] { background:#fff; border-color:#D0D1C9; color:#151515; font-weight:800; box-shadow:0 2px 0 0 #D0D1C9; }
+  .cb { transition: background .15s, border-color .15s; }
+  .cb[data-state=checked] { background:#1D4AFF; border-color:#1D4AFF; }
   .cb[data-state=checked] svg { opacity:1; }
-  .row[data-done=true] .ex-title { text-decoration:line-through; color:hsl(240 3.8% 46.1%); }
-  .row[data-done=true] { opacity:.65; }
+  .row[data-done=true] .ex-title { text-decoration:line-through; color:#8F8F8C; }
+  .row[data-done=true] { opacity:.6; }
+  .ph-btn { box-shadow:0 3px 0 0 rgba(0,0,0,.30); transition: transform .08s, box-shadow .08s; }
+  .ph-btn:active { transform:translateY(2px); box-shadow:0 1px 0 0 rgba(0,0,0,.30); }
 </style>
 </head>
-<body class="bg-background font-sans text-foreground antialiased">
+<body class="font-sans text-ink antialiased">
 <div class="mx-auto max-w-2xl px-4 py-8 md:py-12">
 
   <!-- Header -->
-  <div class="mb-8">
-    <div class="flex items-center justify-between">
+  <div class="mb-6">
+    <p class="font-mono text-[11px] font-semibold uppercase tracking-[0.15em] text-horange">Body recomposition</p>
+    <div class="mt-1 flex items-end justify-between gap-4">
       <div>
-        <h1 class="text-2xl font-bold tracking-tight">Workout Plan</h1>
-        <p class="mt-1 text-sm text-muted-foreground">Body recomposition · 4 lifts + 2 runs weekly</p>
+        <h1 class="text-3xl font-black tracking-tight">Workout Plan</h1>
+        <p class="mt-1 text-sm font-medium text-gray2">4 lifts + 2 runs weekly · built different 🦔</p>
       </div>
-      <a href="../" class="inline-flex h-9 items-center rounded-md border border-input bg-background px-3 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground">Classic view</a>
+      <a href="../" class="ph-btn inline-flex h-9 shrink-0 items-center rounded-md border-[1.5px] border-ink bg-white px-3 text-[13px] font-bold text-ink hover:bg-tan-dark">Classic view</a>
     </div>
   </div>
 
   <!-- Tabs -->
-  <div class="inline-flex h-9 w-full items-center justify-between rounded-lg bg-muted p-1 text-muted-foreground" role="tablist" id="tabs">
-    <button class="tab-trigger flex-1 rounded-md px-2 py-1 text-xs font-medium transition-all sm:text-sm" data-day="0">Mon</button>
-    <button class="tab-trigger flex-1 rounded-md px-2 py-1 text-xs font-medium transition-all sm:text-sm" data-day="1">Tue</button>
-    <button class="tab-trigger flex-1 rounded-md px-2 py-1 text-xs font-medium transition-all sm:text-sm" data-day="2">Wed</button>
-    <button class="tab-trigger flex-1 rounded-md px-2 py-1 text-xs font-medium transition-all sm:text-sm" data-day="3">Thu</button>
-    <button class="tab-trigger flex-1 rounded-md px-2 py-1 text-xs font-medium transition-all sm:text-sm" data-day="4">Fri</button>
-    <button class="tab-trigger flex-1 rounded-md px-2 py-1 text-xs font-medium transition-all sm:text-sm" data-day="5">Sat</button>
-    <button class="tab-trigger flex-1 rounded-md px-2 py-1 text-xs font-medium transition-all sm:text-sm" data-day="6">Sun</button>
+  <div class="flex w-full items-center gap-1 rounded-lg border-[1.5px] border-smoke bg-tan-dark p-1" role="tablist" id="tabs">
+    <button class="tab-trigger flex-1 rounded-md px-1 py-1.5 text-xs font-semibold text-gray2 sm:text-sm" data-day="0">Mon</button>
+    <button class="tab-trigger flex-1 rounded-md px-1 py-1.5 text-xs font-semibold text-gray2 sm:text-sm" data-day="1">Tue</button>
+    <button class="tab-trigger flex-1 rounded-md px-1 py-1.5 text-xs font-semibold text-gray2 sm:text-sm" data-day="2">Wed</button>
+    <button class="tab-trigger flex-1 rounded-md px-1 py-1.5 text-xs font-semibold text-gray2 sm:text-sm" data-day="3">Thu</button>
+    <button class="tab-trigger flex-1 rounded-md px-1 py-1.5 text-xs font-semibold text-gray2 sm:text-sm" data-day="4">Fri</button>
+    <button class="tab-trigger flex-1 rounded-md px-1 py-1.5 text-xs font-semibold text-gray2 sm:text-sm" data-day="5">Sat</button>
+    <button class="tab-trigger flex-1 rounded-md px-1 py-1.5 text-xs font-semibold text-gray2 sm:text-sm" data-day="6">Sun</button>
   </div>
 
-  <div id="panel" class="mt-6"></div>
+  <div id="panel" class="mt-5"></div>
 
 </div>
 
 <!-- Rest timer dialog -->
 <div id="tdlg" class="pointer-events-none fixed inset-0 z-50 flex items-center justify-center opacity-0 transition-opacity duration-200">
-  <div class="absolute inset-0 bg-black/60" onclick="closeTimer()"></div>
-  <div class="relative mx-4 w-full max-w-xs rounded-lg border bg-background p-6 shadow-lg">
-    <p id="tname" class="text-center text-sm font-medium text-muted-foreground"></p>
+  <div class="absolute inset-0 bg-ink/70" onclick="closeTimer()"></div>
+  <div class="relative mx-4 w-full max-w-xs rounded-lg border-[1.5px] border-ink bg-tan p-6 shadow-ph-btn">
+    <p id="tname" class="text-center font-mono text-xs font-semibold uppercase tracking-[0.12em] text-gray2"></p>
     <div class="relative mx-auto mt-4 h-36 w-36">
       <svg class="h-36 w-36" viewBox="0 0 144 144">
-        <circle cx="72" cy="72" r="62" fill="none" stroke="hsl(240 4.8% 95.9%)" stroke-width="6"/>
-        <circle id="tring" cx="72" cy="72" r="62" fill="none" stroke="hsl(240 5.9% 10%)" stroke-width="6" stroke-linecap="round" transform="rotate(-90 72 72)"/>
+        <circle cx="72" cy="72" r="62" fill="none" stroke="#D0D1C9" stroke-width="7"/>
+        <circle id="tring" cx="72" cy="72" r="62" fill="none" stroke="#1D4AFF" stroke-width="7" stroke-linecap="round" transform="rotate(-90 72 72)"/>
       </svg>
       <div class="absolute inset-0 flex flex-col items-center justify-center">
-        <span id="tcount" class="text-3xl font-bold tabular-nums tracking-tight">0:00</span>
-        <span id="tsub" class="mt-0.5 text-xs text-muted-foreground">rest</span>
+        <span id="tcount" class="text-3xl font-black tabular-nums tracking-tight">0:00</span>
+        <span id="tsub" class="mt-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-gray2">rest</span>
       </div>
     </div>
-    <button class="mt-5 inline-flex h-9 w-full items-center justify-center rounded-md bg-primary text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90" onclick="closeTimer()">Skip Rest</button>
+    <button class="ph-btn mt-5 inline-flex h-10 w-full items-center justify-center rounded-md border-[1.5px] border-ink bg-horange text-sm font-extrabold text-white hover:brightness-105" onclick="closeTimer()">Skip rest</button>
   </div>
 </div>
 
 <script>
 const PLAN = [
   {
-    day: 'Monday', type: 'Push', badge: 'bg-orange-100 text-orange-700', time: '~60 min',
+    day: 'Monday', type: 'Push', color: 'horange', time: '~60 min',
     sections: [{ label: null, ex: [
       { n: 'Barbell Bench Press', m: 'Chest · Shoulders · Triceps', s: '4 × 4–6', r: '3 min', rs: 180 },
       { n: 'Overhead Press', m: 'Shoulders · Triceps', s: '3 × 6–8', r: '2 min', rs: 120 },
@@ -101,11 +113,11 @@ const PLAN = [
     ]}]
   },
   {
-    day: 'Tuesday', type: 'Cardio', badge: 'bg-teal-100 text-teal-700', time: '30–40 min',
+    day: 'Tuesday', type: 'Cardio', color: 'hteal', time: '30–40 min',
     run: { title: 'Zone 2 Run', desc: '30–40 minutes at conversational pace (~65% max HR). You should be able to hold a full sentence — if you can\'t, slow down. Optimal for fat oxidation while preserving muscle.' }
   },
   {
-    day: 'Wednesday', type: 'Pull + Core', badge: 'bg-blue-100 text-blue-700', time: '~65 min',
+    day: 'Wednesday', type: 'Pull + Core', color: 'hblue', time: '~65 min',
     sections: [
       { label: null, ex: [
         { n: 'Barbell Row', m: 'Back thickness · Biceps', s: '4 × 4–6', r: '3 min', rs: 180 },
@@ -122,7 +134,7 @@ const PLAN = [
     ]
   },
   {
-    day: 'Thursday', type: 'Legs', badge: 'bg-green-100 text-green-700', time: '~55 min',
+    day: 'Thursday', type: 'Legs', color: 'hgreen', time: '~55 min',
     sections: [{ label: null, ex: [
       { n: 'Back Squat', m: 'Quads · Glutes · Strength', s: '4 × 4–6', r: '3–4 min', rs: 210 },
       { n: 'Romanian Deadlift', m: 'Hamstrings · Glutes', s: '3 × 8–10', r: '2 min', rs: 120 },
@@ -133,7 +145,7 @@ const PLAN = [
     ]}]
   },
   {
-    day: 'Friday', type: 'Upper + Core', badge: 'bg-purple-100 text-purple-700', time: '~55 min',
+    day: 'Friday', type: 'Upper + Core', color: 'hpurple', time: '~55 min',
     sections: [
       { label: null, ex: [
         { n: 'Cable Fly', m: 'Chest', s: '3 × 12–15', r: null, ss: 'A1' },
@@ -152,25 +164,47 @@ const PLAN = [
     ]
   },
   {
-    day: 'Saturday', type: 'Cardio', badge: 'bg-teal-100 text-teal-700', time: '20–30 min',
+    day: 'Saturday', type: 'Cardio', color: 'hteal', time: '20–30 min',
     run: { title: 'Intervals or Easy Jog', desc: '6–8 rounds of 1 min hard / 2 min easy if legs feel fresh. Keep it an easy Zone 2 jog if Thursday soreness lingers.' }
   },
   {
-    day: 'Sunday', type: 'Rest', badge: 'bg-zinc-100 text-zinc-600', time: null,
+    day: 'Sunday', type: 'Rest', color: 'gray2', time: null,
     run: { title: 'Recovery Day', desc: 'This is where the gains happen. Sleep 7–9 hours, stay hydrated. Light walking is fine.' }
   },
 ];
+
+const BADGE = {
+  horange: 'bg-horange/10 text-horange border-horange/30',
+  hblue:   'bg-hblue/10 text-hblue border-hblue/30',
+  hgreen:  'bg-hgreen/15 text-hgreen border-hgreen/40',
+  hpurple: 'bg-hpurple/10 text-hpurple border-hpurple/30',
+  hteal:   'bg-hteal/15 text-teal-700 border-hteal/50',
+  gray2:   'bg-tan-dark text-gray2 border-smoke',
+};
+const BAR = {
+  horange: '#F54E00', hblue: '#1D4AFF', hgreen: '#6AA84F',
+  hpurple: '#B62AD9', hteal: '#29DBBB', gray2: '#8F8F8C',
+};
 
 const done = PLAN.map(d => d.sections ? d.sections.flatMap(s => s.ex).map(() => false) : []);
 const TODAY = [6,0,1,2,3,4,5][new Date().getDay()];
 let cur = TODAY;
 
-const CHECK = `<svg class="opacity-0 transition-opacity" width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const CHECK = `<svg class="opacity-0 transition-opacity" width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="white" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
 function render() {
   const d = PLAN[cur];
   const isToday = cur === TODAY;
   let inner = '';
+
+  const headEl = `
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <h2 class="text-xl font-black tracking-tight">${d.day}</h2>
+        ${isToday ? '<span class="rounded border-[1.5px] border-ink bg-hyellow px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide text-ink">Today</span>' : ''}
+      </div>
+      <span class="rounded-md border-[1.5px] ${BADGE[d.color]} px-2.5 py-0.5 text-xs font-bold">${d.type}</span>
+    </div>`;
 
   if (d.sections) {
     const flat = d.sections.flatMap(s => s.ex);
@@ -185,67 +219,55 @@ function render() {
         const isDone = done[cur][i];
         return `
         <div class="row flex items-center gap-3 py-3" data-done="${isDone}">
-          <button class="cb flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border border-primary shadow transition-colors" data-state="${isDone ? 'checked' : 'unchecked'}" onclick="toggle(${i})" aria-label="Mark ${ex.n} done">${CHECK}</button>
+          <button class="cb flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded border-[1.5px] border-ink bg-white" data-state="${isDone ? 'checked' : 'unchecked'}" onclick="toggle(${i})" aria-label="Mark ${ex.n} done">${CHECK}</button>
           <div class="min-w-0 flex-1">
-            <p class="ex-title truncate text-sm font-medium leading-none">${ex.n}${ex.ss ? ` <span class="ml-1.5 inline-flex items-center rounded-md bg-secondary px-1.5 py-0.5 text-[10px] font-semibold text-secondary-foreground">${ex.ss}</span>` : ''}</p>
-            <p class="mt-1 truncate text-xs text-muted-foreground">${ex.m}</p>
+            <p class="ex-title truncate text-sm font-bold leading-tight">${ex.n}${ex.ss ? ` <span class="ml-1 rounded border border-smoke bg-tan px-1 py-px font-mono text-[9px] font-bold text-gray2">${ex.ss}</span>` : ''}</p>
+            <p class="mt-0.5 truncate text-xs font-medium text-gray2">${ex.m}</p>
           </div>
           <div class="shrink-0 text-right">
-            <p class="text-sm font-semibold tabular-nums">${ex.s}</p>
+            <p class="font-mono text-[13px] font-bold tabular-nums">${ex.s}</p>
             ${ex.r
-              ? `<button class="mt-0.5 inline-flex items-center gap-1 text-xs text-muted-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline" onclick="openTimer(${ex.rs}, '${ex.n.replace(/'/g, "\\'")}')">
-                   <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.2"/><path d="M5 3v2.2l1.4.9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>${ex.r}
+              ? `<button class="mt-0.5 inline-flex items-center gap-1 font-mono text-[11px] font-semibold text-hblue underline decoration-dotted underline-offset-2 hover:text-horange" onclick="openTimer(${ex.rs}, '${ex.n.replace(/'/g, "\\'")}')">
+                   <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.3"/><path d="M5 3v2.2l1.4.9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>${ex.r}
                  </button>`
-              : '<p class="mt-0.5 text-xs text-muted-foreground">no rest →</p>'}
+              : '<p class="mt-0.5 font-mono text-[11px] font-semibold text-horange">no rest →</p>'}
           </div>
         </div>`;
-      }).join('<div class="h-px bg-border"></div>');
+      }).join('<div class="h-px bg-smoke/70"></div>');
 
       const divider = sec.label ? `
         <div class="flex items-center gap-3 pt-4 pb-1">
-          <div class="h-px flex-1 bg-border"></div>
-          <span class="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">${sec.label}</span>
-          <div class="h-px flex-1 bg-border"></div>
+          <div class="h-px flex-1 bg-smoke"></div>
+          <span class="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-gray2">${sec.label}</span>
+          <div class="h-px flex-1 bg-smoke"></div>
         </div>` : '';
       return divider + rows;
     }).join('');
 
     inner = `
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <h2 class="text-lg font-semibold leading-none tracking-tight">${d.day}</h2>
-          ${isToday ? '<span class="inline-flex items-center rounded-md bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground">Today</span>' : ''}
-        </div>
-        <span class="inline-flex items-center rounded-md ${d.badge} px-2.5 py-0.5 text-xs font-semibold">${d.type}</span>
+      ${headEl}
+      <p class="mt-1.5 font-mono text-xs font-semibold text-gray2">${checked}/${total} exercises · ${d.time}</p>
+      <div class="mt-3 h-3 w-full overflow-hidden rounded border-[1.5px] border-ink bg-white">
+        <div class="h-full transition-all duration-300" style="width:${pct}%;background:${BAR[d.color]}"></div>
       </div>
-      <p class="mt-1.5 text-sm text-muted-foreground">${checked} of ${total} exercises · ${d.time}</p>
-      <div class="mt-4 h-2 w-full overflow-hidden rounded-full bg-secondary">
-        <div class="h-full bg-primary transition-all duration-300" style="width:${pct}%"></div>
-      </div>
-      <div class="mt-4">${sectionsHtml}</div>
+      <div class="mt-3">${sectionsHtml}</div>
       ${checked === total ? `
-        <div class="mt-4 flex items-center justify-between rounded-lg border bg-secondary/50 px-4 py-3">
-          <p class="text-sm font-medium">Workout complete 🎉</p>
-          <button class="inline-flex h-8 items-center rounded-md border border-input bg-background px-3 text-xs font-medium shadow-sm transition-colors hover:bg-accent" onclick="resetDay()">Reset</button>
+        <div class="mt-4 flex items-center justify-between rounded-md border-[1.5px] border-ink bg-hyellow px-4 py-3">
+          <p class="text-sm font-extrabold">Workout complete 🦔</p>
+          <button class="ph-btn inline-flex h-8 items-center rounded border-[1.5px] border-ink bg-white px-3 text-xs font-bold hover:bg-tan" onclick="resetDay()">Reset</button>
         </div>` : ''}`;
   } else {
     inner = `
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <h2 class="text-lg font-semibold leading-none tracking-tight">${d.day}</h2>
-          ${isToday ? '<span class="inline-flex items-center rounded-md bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground">Today</span>' : ''}
-        </div>
-        <span class="inline-flex items-center rounded-md ${d.badge} px-2.5 py-0.5 text-xs font-semibold">${d.type}</span>
-      </div>
-      <div class="mt-6 rounded-lg border bg-secondary/30 p-5">
-        <h3 class="text-sm font-semibold">${d.run.title}</h3>
-        <p class="mt-2 text-sm leading-relaxed text-muted-foreground">${d.run.desc}</p>
-        ${d.time ? `<p class="mt-3 text-xs font-medium text-muted-foreground">Duration: ${d.time}</p>` : ''}
+      ${headEl}
+      <div class="mt-5 rounded-md border-[1.5px] border-smoke bg-tan p-5">
+        <h3 class="text-sm font-extrabold">${d.run.title}</h3>
+        <p class="mt-2 text-sm font-medium leading-relaxed text-gray2">${d.run.desc}</p>
+        ${d.time ? `<p class="mt-3 font-mono text-[11px] font-bold uppercase tracking-wide text-gray2">Duration: ${d.time}</p>` : ''}
       </div>`;
   }
 
   document.getElementById('panel').innerHTML = `
-    <div class="rounded-xl border bg-card p-6 text-card-foreground shadow">${inner}</div>`;
+    <div class="rounded-lg border-[1.5px] border-smoke bg-white p-5 shadow-ph sm:p-6">${inner}</div>`;
 
   document.querySelectorAll('.tab-trigger').forEach((t, i) =>
     t.setAttribute('data-state', i === cur ? 'active' : 'inactive'));
@@ -280,7 +302,8 @@ function openTimer(sec, name) {
   tTot = tRem = sec;
   tname.textContent = name;
   tcount.textContent = fmt(tRem);
-  tcount.classList.remove('text-green-600');
+  tcount.style.color = '';
+  tring.style.stroke = BAR[PLAN[cur].color] || '#1D4AFF';
   tsub.textContent = `of ${fmt(tTot)} rest`;
   tring.style.transition = 'none';
   tring.style.strokeDashoffset = '0';
@@ -292,7 +315,7 @@ function openTimer(sec, name) {
       clearInterval(tiv);
       tring.style.strokeDashoffset = TC;
       tcount.textContent = 'Go!';
-      tcount.classList.add('text-green-600');
+      tcount.style.color = '#F54E00';
       tsub.textContent = 'rest complete';
       beep(523,.2,.15); setTimeout(()=>beep(659,.18,.15),155); setTimeout(()=>beep(784,.15,.25),310);
       if (navigator.vibrate) navigator.vibrate([150,80,200]);
