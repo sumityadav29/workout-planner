@@ -68,17 +68,36 @@ tailwind.config = {
 
 </div>
 
+<!-- Rest timer dialog -->
+<div id="tdlg" class="pointer-events-none fixed inset-0 z-50 flex items-center justify-center opacity-0 transition-opacity duration-200">
+  <div class="absolute inset-0 bg-black/60" onclick="closeTimer()"></div>
+  <div class="relative mx-4 w-full max-w-xs rounded-lg border bg-background p-6 shadow-lg">
+    <p id="tname" class="text-center text-sm font-medium text-muted-foreground"></p>
+    <div class="relative mx-auto mt-4 h-36 w-36">
+      <svg class="h-36 w-36" viewBox="0 0 144 144">
+        <circle cx="72" cy="72" r="62" fill="none" stroke="hsl(240 4.8% 95.9%)" stroke-width="6"/>
+        <circle id="tring" cx="72" cy="72" r="62" fill="none" stroke="hsl(240 5.9% 10%)" stroke-width="6" stroke-linecap="round" transform="rotate(-90 72 72)"/>
+      </svg>
+      <div class="absolute inset-0 flex flex-col items-center justify-center">
+        <span id="tcount" class="text-3xl font-bold tabular-nums tracking-tight">0:00</span>
+        <span id="tsub" class="mt-0.5 text-xs text-muted-foreground">rest</span>
+      </div>
+    </div>
+    <button class="mt-5 inline-flex h-9 w-full items-center justify-center rounded-md bg-primary text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90" onclick="closeTimer()">Skip Rest</button>
+  </div>
+</div>
+
 <script>
 const PLAN = [
   {
     day: 'Monday', type: 'Push', badge: 'bg-orange-100 text-orange-700', time: '~60 min',
     sections: [{ label: null, ex: [
-      { n: 'Barbell Bench Press', m: 'Chest · Shoulders · Triceps', s: '4 × 4–6', r: '3 min' },
-      { n: 'Overhead Press', m: 'Shoulders · Triceps', s: '3 × 6–8', r: '2 min' },
-      { n: 'Incline DB Press', m: 'Upper chest · Front delts', s: '3 × 10–12', r: '90s' },
-      { n: 'Lateral Raises', m: 'Medial delts', s: '3 × 15–20', r: '60s' },
-      { n: 'Tricep Pushdown', m: 'Triceps', s: '3 × 12–15', r: '60s' },
-      { n: 'Tricep Bench Dips', m: 'Triceps · Finisher', s: '3 × 15–20', r: '60s' },
+      { n: 'Barbell Bench Press', m: 'Chest · Shoulders · Triceps', s: '4 × 4–6', r: '3 min', rs: 180 },
+      { n: 'Overhead Press', m: 'Shoulders · Triceps', s: '3 × 6–8', r: '2 min', rs: 120 },
+      { n: 'Incline DB Press', m: 'Upper chest · Front delts', s: '3 × 10–12', r: '90s', rs: 90 },
+      { n: 'Lateral Raises', m: 'Medial delts', s: '3 × 15–20', r: '60s', rs: 60 },
+      { n: 'Tricep Pushdown', m: 'Triceps', s: '3 × 12–15', r: '60s', rs: 60 },
+      { n: 'Tricep Bench Dips', m: 'Triceps · Finisher', s: '3 × 15–20', r: '60s', rs: 60 },
     ]}]
   },
   {
@@ -89,28 +108,28 @@ const PLAN = [
     day: 'Wednesday', type: 'Pull + Core', badge: 'bg-blue-100 text-blue-700', time: '~65 min',
     sections: [
       { label: null, ex: [
-        { n: 'Barbell Row', m: 'Back thickness · Biceps', s: '4 × 4–6', r: '3 min' },
-        { n: 'Weighted Pull-ups', m: 'Lats · Biceps', s: '3 × 6–8', r: '2 min' },
-        { n: 'Cable Seated Row', m: 'Mid back · Rear delts', s: '3 × 10–12', r: '90s' },
-        { n: 'Face Pulls', m: 'Rear delts · Posture', s: '3 × 15–20', r: '60s' },
-        { n: 'Barbell Curl', m: 'Biceps', s: '3 × 10–12', r: '60s' },
+        { n: 'Barbell Row', m: 'Back thickness · Biceps', s: '4 × 4–6', r: '3 min', rs: 180 },
+        { n: 'Weighted Pull-ups', m: 'Lats · Biceps', s: '3 × 6–8', r: '2 min', rs: 120 },
+        { n: 'Cable Seated Row', m: 'Mid back · Rear delts', s: '3 × 10–12', r: '90s', rs: 90 },
+        { n: 'Face Pulls', m: 'Rear delts · Posture', s: '3 × 15–20', r: '60s', rs: 60 },
+        { n: 'Barbell Curl', m: 'Biceps', s: '3 × 10–12', r: '60s', rs: 60 },
       ]},
       { label: 'Core', ex: [
-        { n: 'Dead Bug', m: 'Transverse abdominis · APT fix', s: '3 × 8 /side', r: '45s' },
-        { n: 'Plank', m: 'Anterior core · Stability', s: '3 × 40 sec', r: '45s' },
-        { n: 'Hanging Leg Raise', m: 'Lower abs', s: '3 × 12–15', r: '60s' },
+        { n: 'Dead Bug', m: 'Transverse abdominis · APT fix', s: '3 × 8 /side', r: '45s', rs: 45 },
+        { n: 'Plank', m: 'Anterior core · Stability', s: '3 × 40 sec', r: '45s', rs: 45 },
+        { n: 'Hanging Leg Raise', m: 'Lower abs', s: '3 × 12–15', r: '60s', rs: 60 },
       ]}
     ]
   },
   {
     day: 'Thursday', type: 'Legs', badge: 'bg-green-100 text-green-700', time: '~55 min',
     sections: [{ label: null, ex: [
-      { n: 'Back Squat', m: 'Quads · Glutes · Strength', s: '4 × 4–6', r: '3–4 min' },
-      { n: 'Romanian Deadlift', m: 'Hamstrings · Glutes', s: '3 × 8–10', r: '2 min' },
-      { n: 'Bulgarian Split Squat', m: 'Quads · Glutes · Unilateral', s: '3 × 10–12', r: '90s' },
-      { n: 'Hip Thrust', m: 'Glutes · Posture', s: '3 × 12–15', r: '90s' },
-      { n: 'Seated Leg Curl', m: 'Hamstrings', s: '3 × 12–15', r: '60s' },
-      { n: 'Standing Calf Raise', m: 'Calves', s: '4 × 15–20', r: '60s' },
+      { n: 'Back Squat', m: 'Quads · Glutes · Strength', s: '4 × 4–6', r: '3–4 min', rs: 210 },
+      { n: 'Romanian Deadlift', m: 'Hamstrings · Glutes', s: '3 × 8–10', r: '2 min', rs: 120 },
+      { n: 'Bulgarian Split Squat', m: 'Quads · Glutes · Unilateral', s: '3 × 10–12', r: '90s', rs: 90 },
+      { n: 'Hip Thrust', m: 'Glutes · Posture', s: '3 × 12–15', r: '90s', rs: 90 },
+      { n: 'Seated Leg Curl', m: 'Hamstrings', s: '3 × 12–15', r: '60s', rs: 60 },
+      { n: 'Standing Calf Raise', m: 'Calves', s: '4 × 15–20', r: '60s', rs: 60 },
     ]}]
   },
   {
@@ -118,17 +137,17 @@ const PLAN = [
     sections: [
       { label: null, ex: [
         { n: 'Cable Fly', m: 'Chest', s: '3 × 12–15', r: null, ss: 'A1' },
-        { n: 'Lat Pulldown', m: 'Lats · Biceps', s: '3 × 10–12', r: '90s', ss: 'A2' },
+        { n: 'Lat Pulldown', m: 'Lats · Biceps', s: '3 × 10–12', r: '90s', rs: 90, ss: 'A2' },
         { n: 'DB Shoulder Press', m: 'Shoulders', s: '3 × 10–12', r: null, ss: 'B1' },
-        { n: 'Cable Row', m: 'Mid back · Biceps', s: '3 × 12–15', r: '90s', ss: 'B2' },
+        { n: 'Cable Row', m: 'Mid back · Biceps', s: '3 × 12–15', r: '90s', rs: 90, ss: 'B2' },
         { n: 'DB Curl', m: 'Biceps', s: '3 × 12–15', r: null, ss: 'C1' },
-        { n: 'Tricep Overhead Ext', m: 'Triceps', s: '3 × 12–15', r: '60s', ss: 'C2' },
-        { n: 'Lateral Raises', m: 'Medial delts', s: '3 × 15–20', r: '60s' },
+        { n: 'Tricep Overhead Ext', m: 'Triceps', s: '3 × 12–15', r: '60s', rs: 60, ss: 'C2' },
+        { n: 'Lateral Raises', m: 'Medial delts', s: '3 × 15–20', r: '60s', rs: 60 },
       ]},
       { label: 'Core', ex: [
-        { n: 'Cable Crunch', m: 'Abs · Hypertrophy', s: '3 × 15–20', r: '45s' },
-        { n: 'Ab Wheel Rollout', m: 'Anti-extension · Total core', s: '3 × 8–10', r: '60s' },
-        { n: 'Hollow Hold', m: 'Lower abs · APT fix', s: '3 × 25–30s', r: '45s' },
+        { n: 'Cable Crunch', m: 'Abs · Hypertrophy', s: '3 × 15–20', r: '45s', rs: 45 },
+        { n: 'Ab Wheel Rollout', m: 'Anti-extension · Total core', s: '3 × 8–10', r: '60s', rs: 60 },
+        { n: 'Hollow Hold', m: 'Lower abs · APT fix', s: '3 × 25–30s', r: '45s', rs: 45 },
       ]}
     ]
   },
@@ -173,7 +192,11 @@ function render() {
           </div>
           <div class="shrink-0 text-right">
             <p class="text-sm font-semibold tabular-nums">${ex.s}</p>
-            <p class="mt-0.5 text-xs text-muted-foreground">${ex.r ? 'rest ' + ex.r : 'no rest →'}</p>
+            ${ex.r
+              ? `<button class="mt-0.5 inline-flex items-center gap-1 text-xs text-muted-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline" onclick="openTimer(${ex.rs}, '${ex.n.replace(/'/g, "\\'")}')">
+                   <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.2"/><path d="M5 3v2.2l1.4.9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>${ex.r}
+                 </button>`
+              : '<p class="mt-0.5 text-xs text-muted-foreground">no rest →</p>'}
           </div>
         </div>`;
       }).join('<div class="h-px bg-border"></div>');
@@ -239,6 +262,64 @@ document.querySelectorAll('.tab-trigger').forEach(t =>
   t.addEventListener('click', () => { cur = +t.dataset.day; render(); }));
 
 render();
+
+// ---- Rest timer ----
+const TC = 2 * Math.PI * 62;
+const tdlg = document.getElementById('tdlg');
+const tring = document.getElementById('tring');
+const tcount = document.getElementById('tcount');
+const tsub = document.getElementById('tsub');
+const tname = document.getElementById('tname');
+tring.style.strokeDasharray = TC;
+let tiv = null, tRem = 0, tTot = 0;
+
+function fmt(s) { return s >= 60 ? `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}` : `${s}s`; }
+
+function openTimer(sec, name) {
+  clearInterval(tiv);
+  tTot = tRem = sec;
+  tname.textContent = name;
+  tcount.textContent = fmt(tRem);
+  tcount.classList.remove('text-green-600');
+  tsub.textContent = `of ${fmt(tTot)} rest`;
+  tring.style.transition = 'none';
+  tring.style.strokeDashoffset = '0';
+  requestAnimationFrame(() => { tring.style.transition = 'stroke-dashoffset 1s linear'; });
+  tdlg.classList.remove('pointer-events-none', 'opacity-0');
+  tiv = setInterval(() => {
+    tRem--;
+    if (tRem <= 0) {
+      clearInterval(tiv);
+      tring.style.strokeDashoffset = TC;
+      tcount.textContent = 'Go!';
+      tcount.classList.add('text-green-600');
+      tsub.textContent = 'rest complete';
+      beep(523,.2,.15); setTimeout(()=>beep(659,.18,.15),155); setTimeout(()=>beep(784,.15,.25),310);
+      if (navigator.vibrate) navigator.vibrate([150,80,200]);
+    } else {
+      tring.style.strokeDashoffset = TC * (tRem / tTot);
+      tcount.textContent = fmt(tRem);
+    }
+  }, 1000);
+}
+
+function closeTimer() {
+  clearInterval(tiv);
+  tdlg.classList.add('pointer-events-none', 'opacity-0');
+}
+
+let actx;
+function beep(freq, gain, dur) {
+  try {
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.connect(g); g.connect(actx.destination);
+    o.type = 'sine'; o.frequency.value = freq;
+    g.gain.setValueAtTime(gain, actx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + dur);
+    o.start(); o.stop(actx.currentTime + dur);
+  } catch(_) {}
+}
 </script>
 </body>
 </html>
