@@ -6,7 +6,7 @@
     <title>Workout Plan</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
-        *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+        *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none; }
 
         :root {
             --bg:#0A0A0A; --surface:#111; --border:#1C1C1C;
@@ -20,7 +20,7 @@
 
         .app { height:100%; width:100%; display:flex; flex-direction:column; overflow:hidden; }
 
-        .track { flex:1; display:flex; will-change:transform;
+        .track { flex:1; display:flex; will-change:transform; touch-action:pan-y;
             transition:transform 0.38s cubic-bezier(0.25,0.46,0.45,0.94); }
         .track.instant { transition:none; }
 
