@@ -4,626 +4,602 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Workout Plan</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
-        *, *::before, *::after {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
+        *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 
         :root {
-            --bg: #0A0A0A;
-            --surface: #111111;
-            --border: #1C1C1C;
-            --text-primary: #F0F0F0;
-            --text-secondary: #888;
-            --text-muted: #3A3A3A;
-
-            --push: #FF6B35;
-            --pull: #3B82F6;
-            --legs: #22C55E;
-            --upper: #A855F7;
-            --run: #14B8A6;
-            --rest: #6B7280;
+            --bg:#0A0A0A; --surface:#111; --border:#1C1C1C;
+            --t1:#F0F0F0; --t2:#666; --t3:#2E2E2E;
+            --push:#FF6B35; --pull:#3B82F6; --legs:#22C55E;
+            --upper:#A855F7; --run:#14B8A6; --rest:#6B7280;
         }
 
-        html, body {
-            height: 100%;
-            background: var(--bg);
-            color: var(--text-primary);
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            overflow: hidden;
-            position: fixed;
-            width: 100%;
-        }
+        html, body { height:100%; width:100%; background:var(--bg); color:var(--t1);
+            font-family:'Inter',system-ui,sans-serif; overflow:hidden; position:fixed; }
 
-        .app {
-            height: 100%;
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
+        .app { height:100%; width:100%; display:flex; flex-direction:column; overflow:hidden; }
 
-        /* ── Slider ── */
-        .slider-track {
-            display: flex;
-            flex: 1;
-            will-change: transform;
-            transition: transform 0.38s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            cursor: grab;
-            user-select: none;
-        }
+        /* Track */
+        .track { flex:1; display:flex; will-change:transform;
+            transition:transform 0.38s cubic-bezier(0.25,0.46,0.45,0.94); }
+        .track.instant { transition:none; }
 
-        .slider-track.dragging {
-            transition: none;
-            cursor: grabbing;
-        }
+        .slide { min-width:100vw; height:100%; display:flex; flex-direction:column; overflow:hidden; position:relative; }
+        .slide[data-type=push]  { background:radial-gradient(ellipse at 50% 0%,rgba(255,107,53,.07) 0%,transparent 55%); }
+        .slide[data-type=pull]  { background:radial-gradient(ellipse at 50% 0%,rgba(59,130,246,.07) 0%,transparent 55%); }
+        .slide[data-type=legs]  { background:radial-gradient(ellipse at 50% 0%,rgba(34,197,94,.07) 0%,transparent 55%); }
+        .slide[data-type=upper] { background:radial-gradient(ellipse at 50% 0%,rgba(168,85,247,.07) 0%,transparent 55%); }
+        .slide[data-type=run]   { background:radial-gradient(ellipse at 50% 0%,rgba(20,184,166,.07) 0%,transparent 55%); }
 
-        .slide {
-            min-width: 100vw;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
+        /* Header */
+        .card-head { padding:50px 28px 16px; flex-shrink:0; }
+        .head-top { display:flex; align-items:center; gap:8px; margin-bottom:5px; }
+        .day-label { font-size:11px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:var(--t3); }
+        .today-pill { display:none; padding:2px 8px; border-radius:100px; font-size:9px;
+            font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#000; }
+        .day-name { font-size:36px; font-weight:900; letter-spacing:-.04em; line-height:1; margin-bottom:13px; }
+        .head-bot { display:flex; align-items:center; gap:10px; }
+        .badge { display:inline-flex; align-items:center; padding:5px 12px; border-radius:100px;
+            font-size:11px; font-weight:700; letter-spacing:.04em; }
+        .b-push  { background:rgba(255,107,53,.12); color:var(--push); }
+        .b-pull  { background:rgba(59,130,246,.12);  color:var(--pull); }
+        .b-legs  { background:rgba(34,197,94,.12);   color:var(--legs); }
+        .b-upper { background:rgba(168,85,247,.12);  color:var(--upper); }
+        .b-run   { background:rgba(20,184,166,.12);  color:var(--run); }
+        .b-rest  { background:rgba(107,114,128,.12); color:var(--rest); }
+        .day-stats { font-size:11px; color:var(--t3); font-weight:500; }
+        .prog-wrap { margin-top:14px; height:2px; background:var(--border); border-radius:100px; overflow:hidden; }
+        .prog-bar  { height:100%; border-radius:100px; width:0%; transition:width .4s cubic-bezier(.34,1.56,.64,1); }
 
-        /* ── Card Header ── */
-        .card-head {
-            padding: 52px 28px 20px;
-            flex-shrink: 0;
-        }
+        /* Sep */
+        .sep { height:1px; background:var(--border); margin:0 28px; flex-shrink:0; }
 
-        .day-label {
-            font-size: 11px;
-            font-weight: 600;
-            letter-spacing: 0.18em;
-            text-transform: uppercase;
-            color: var(--text-muted);
-            margin-bottom: 6px;
-        }
+        /* Exercise list */
+        .ex-list { flex:1; padding:4px 28px 0; display:flex; flex-direction:column; overflow:hidden; position:relative; }
+        .ex-row { display:flex; align-items:center; gap:13px; padding:11px 0;
+            border-bottom:1px solid #161616; flex-shrink:0; transition:opacity .25s ease; }
+        .ex-row:last-child { border-bottom:none; }
+        .ex-row.done { opacity:.35; }
 
-        .day-name {
-            font-size: 34px;
-            font-weight: 800;
-            letter-spacing: -0.03em;
-            line-height: 1;
-            margin-bottom: 14px;
-        }
+        /* Checkbox */
+        .ex-cb { width:28px; height:28px; border-radius:50%; border:1.5px solid #2A2A2A;
+            background:transparent; display:flex; align-items:center; justify-content:center;
+            cursor:pointer; flex-shrink:0; position:relative; outline:none;
+            transition:background .2s, border-color .2s, transform .15s cubic-bezier(.34,1.56,.64,1); }
+        .ex-cb:active { transform:scale(.85); }
+        .ex-cb .num { font-size:11px; font-weight:700; color:#3A3A3A; position:absolute; transition:opacity .15s; }
+        .ex-cb .ck  { position:absolute; opacity:0; transform:scale(0);
+            transition:opacity .15s, transform .2s cubic-bezier(.34,1.56,.64,1); }
+        .ex-cb .ck svg { width:13px; height:13px; }
+        .ex-cb.on { border-color:var(--accent); background:var(--accent); }
+        .ex-cb.on .num { opacity:0; }
+        .ex-cb.on .ck  { opacity:1; transform:scale(1); }
 
-        .day-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 5px 12px;
-            border-radius: 100px;
-            font-size: 12px;
-            font-weight: 600;
-            letter-spacing: 0.04em;
-        }
+        .ex-info { flex:1; min-width:0; }
+        .ex-name { font-size:14px; font-weight:500; color:var(--t1);
+            white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .ex-row.done .ex-name { text-decoration:line-through; text-decoration-color:#333; }
+        .ex-musc { font-size:11px; color:var(--t3); margin-top:2px; }
 
-        .badge-push  { background: rgba(255,107,53,.12); color: var(--push); }
-        .badge-pull  { background: rgba(59,130,246,.12); color: var(--pull); }
-        .badge-legs  { background: rgba(34,197,94,.12);  color: var(--legs); }
-        .badge-upper { background: rgba(168,85,247,.12); color: var(--upper); }
-        .badge-run   { background: rgba(20,184,166,.12); color: var(--run); }
-        .badge-rest  { background: rgba(107,114,128,.12);color: var(--rest); }
+        .ex-meta { text-align:right; flex-shrink:0; }
+        .ex-sets { font-size:13px; font-weight:700; color:var(--t1); }
+        .ex-rest { display:inline-flex; align-items:center; gap:3px; margin-top:3px;
+            font-size:11px; color:var(--t3); background:none; border:none; cursor:pointer;
+            padding:0; font-family:inherit; transition:color .2s; }
+        .ex-rest:active { color:var(--accent); }
+        .ex-rest svg { width:9px; height:9px; }
 
-        .sep {
-            height: 1px;
-            background: var(--border);
-            margin: 0 28px;
-            flex-shrink: 0;
-        }
+        /* Completion overlay */
+        .done-overlay { position:absolute; inset:0; display:flex; flex-direction:column;
+            align-items:center; justify-content:center; gap:10px;
+            background:var(--bg); opacity:0; pointer-events:none; transition:opacity .35s ease; }
+        .done-overlay.show { opacity:1; pointer-events:all; }
+        .done-ring { width:72px; height:72px; position:relative; margin-bottom:4px; }
+        .done-ring svg { width:72px; height:72px; }
+        .r-bg { fill:none; stroke:#1C1C1C; stroke-width:2.5; }
+        .r-fg { fill:none; stroke-width:2.5; stroke-linecap:round;
+            stroke-dasharray:188.5; stroke-dashoffset:188.5;
+            transition:stroke-dashoffset .6s cubic-bezier(.34,1.56,.64,1); }
+        .done-ck { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) scale(0);
+            transition:transform .25s cubic-bezier(.34,1.56,.64,1) .25s; }
+        .done-ck svg { width:26px; height:26px; }
+        .done-overlay.show .r-fg { stroke-dashoffset:0; }
+        .done-overlay.show .done-ck { transform:translate(-50%,-50%) scale(1); }
+        .done-title { font-size:18px; font-weight:800; letter-spacing:-.02em; }
+        .done-sub   { font-size:12px; color:var(--t2); }
+        .reset-btn  { margin-top:6px; padding:8px 22px; border-radius:100px; border:1px solid #222;
+            background:transparent; color:var(--t2); font-size:12px; font-weight:600;
+            font-family:inherit; cursor:pointer; transition:border-color .2s,color .2s; }
+        .reset-btn:hover { border-color:#444; color:var(--t1); }
 
-        /* ── Exercise List ── */
-        .exercise-list {
-            flex: 1;
-            padding: 8px 28px 0;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
+        /* Run */
+        .run-body { flex:1; padding:18px 28px; display:flex; flex-direction:column; gap:12px; overflow:hidden; }
+        .run-block { background:var(--surface); border:1px solid var(--border); border-radius:18px;
+            padding:20px; flex:1; display:flex; flex-direction:column; justify-content:center; }
+        .run-lbl  { font-size:10px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--t3); margin-bottom:6px; }
+        .run-val  { font-size:26px; font-weight:800; letter-spacing:-.02em; color:var(--run); margin-bottom:5px; }
+        .run-desc { font-size:12px; color:var(--t2); line-height:1.6; }
 
-        .ex-row {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            padding: 13px 0;
-            border-bottom: 1px solid #161616;
-            flex-shrink: 0;
-        }
+        /* Coming soon */
+        .cs-wrap { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:9px; }
+        .cs-ring { width:54px; height:54px; border-radius:50%; border:1.5px dashed #1E1E1E;
+            display:flex; align-items:center; justify-content:center; margin-bottom:3px; }
+        .cs-dot  { width:6px; height:6px; border-radius:50%; background:#1E1E1E; }
+        .cs-musc { font-size:13px; color:var(--t2); font-weight:500; }
+        .cs-note { font-size:11px; color:var(--t3); }
 
-        .ex-row:last-child { border-bottom: none; }
+        /* Rest day */
+        .rest-wrap { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:11px; }
+        .rest-orb  { width:68px; height:68px; border-radius:50%; background:var(--surface); border:1px solid var(--border); margin-bottom:4px; }
+        .rest-ttl  { font-size:16px; font-weight:700; color:var(--rest); }
+        .rest-desc { font-size:13px; color:var(--t3); text-align:center; line-height:1.7; }
 
-        .ex-num {
-            width: 26px;
-            height: 26px;
-            border-radius: 50%;
-            background: #181818;
-            border: 1px solid #222;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 11px;
-            font-weight: 600;
-            color: var(--text-muted);
-            flex-shrink: 0;
-        }
+        /* Nav dots */
+        .nav { display:flex; align-items:center; justify-content:center; gap:6px;
+            padding:15px 28px; padding-bottom:calc(15px + env(safe-area-inset-bottom,0px)); flex-shrink:0; }
+        .dot { height:5px; width:5px; border-radius:100px; background:#242424; transition:all .3s ease; cursor:pointer; }
+        .dot.on { width:20px; background:var(--t1); }
 
-        .ex-info { flex: 1; min-width: 0; }
-
-        .ex-name {
-            font-size: 14px;
-            font-weight: 500;
-            color: var(--text-primary);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .ex-muscles {
-            font-size: 11px;
-            color: var(--text-muted);
-            margin-top: 2px;
-        }
-
-        .ex-meta { text-align: right; flex-shrink: 0; }
-
-        .ex-sets {
-            font-size: 13px;
-            font-weight: 700;
-            color: var(--text-primary);
-        }
-
-        .ex-rest {
-            font-size: 11px;
-            color: var(--text-muted);
-            margin-top: 2px;
-        }
-
-        /* ── Run Card ── */
-        .run-body {
-            flex: 1;
-            padding: 20px 28px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            overflow: hidden;
-        }
-
-        .run-block {
-            background: #111;
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 18px 20px;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-
-        .run-block-label {
-            font-size: 10px;
-            font-weight: 700;
-            letter-spacing: 0.16em;
-            text-transform: uppercase;
-            color: var(--text-muted);
-            margin-bottom: 6px;
-        }
-
-        .run-block-value {
-            font-size: 26px;
-            font-weight: 800;
-            letter-spacing: -0.02em;
-            color: var(--run);
-            margin-bottom: 6px;
-        }
-
-        .run-block-desc {
-            font-size: 13px;
-            color: var(--text-secondary);
-            line-height: 1.55;
-        }
-
-        /* ── Coming Soon ── */
-        .coming-soon {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            padding: 28px;
-        }
-
-        .cs-ring {
-            width: 64px;
-            height: 64px;
-            border-radius: 50%;
-            border: 2px dashed #222;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 6px;
-        }
-
-        .cs-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #222;
-        }
-
-        .cs-muscles {
-            font-size: 13px;
-            color: var(--text-secondary);
-            font-weight: 500;
-        }
-
-        .cs-label {
-            font-size: 11px;
-            color: var(--text-muted);
-        }
-
-        /* ── Rest Card ── */
-        .rest-body {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            padding: 28px;
-        }
-
-        .rest-orb {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background: radial-gradient(circle at 40% 40%, #1A1A1A, #0F0F0F);
-            border: 1px solid #1C1C1C;
-            margin-bottom: 8px;
-        }
-
-        .rest-title {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--rest);
-        }
-
-        .rest-desc {
-            font-size: 13px;
-            color: var(--text-muted);
-            text-align: center;
-            line-height: 1.65;
-        }
-
-        /* ── Nav Dots ── */
-        .nav {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 7px;
-            padding: 16px 28px;
-            padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-            flex-shrink: 0;
-        }
-
-        .dot {
-            height: 5px;
-            width: 5px;
-            border-radius: 100px;
-            background: #2A2A2A;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-
-        .dot.active {
-            width: 20px;
-            background: var(--text-primary);
-        }
-
-        /* ── Today Indicator ── */
-        .today-dot {
-            position: absolute;
-            top: 52px;
-            right: 28px;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--legs);
-            box-shadow: 0 0 8px var(--legs);
-        }
+        /* Timer overlay */
+        .t-ov { position:fixed; inset:0; z-index:100; display:flex; align-items:flex-end;
+            pointer-events:none; opacity:0; transition:opacity .3s ease; }
+        .t-ov.open { pointer-events:all; opacity:1; }
+        .t-back { position:absolute; inset:0; background:rgba(0,0,0,.75);
+            backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); }
+        .t-card { position:relative; width:100%; background:#111; border-top:1px solid #1E1E1E;
+            border-radius:24px 24px 0 0; padding:28px;
+            padding-bottom:calc(28px + env(safe-area-inset-bottom,0px));
+            display:flex; flex-direction:column; align-items:center; gap:10px;
+            transform:translateY(100%); transition:transform .38s cubic-bezier(0.25,0.46,0.45,0.94); }
+        .t-ov.open .t-card { transform:translateY(0); }
+        .t-ex  { font-size:12px; font-weight:600; color:var(--t3); letter-spacing:.04em; }
+        .t-ring { position:relative; width:152px; height:152px; margin:4px 0; }
+        .t-ring svg { width:152px; height:152px; }
+        .t-rbg { fill:none; stroke:#1C1C1C; stroke-width:4; }
+        .t-rfg { fill:none; stroke-width:4; stroke-linecap:round; }
+        .t-txt { position:absolute; inset:0; display:flex; flex-direction:column;
+            align-items:center; justify-content:center; gap:1px; }
+        .t-cnt { font-size:40px; font-weight:800; letter-spacing:-.04em;
+            font-variant-numeric:tabular-nums; color:var(--t1); }
+        .t-sub { font-size:11px; color:var(--t3); }
+        .t-hint { font-size:11px; color:var(--t3); }
+        .t-skip { padding:9px 26px; border-radius:100px; border:1px solid #1E1E1E; background:transparent;
+            color:var(--t2); font-size:12px; font-weight:600; font-family:inherit; cursor:pointer;
+            margin-top:2px; transition:border-color .2s,color .2s; }
+        .t-skip:hover { border-color:#333; color:var(--t1); }
     </style>
 </head>
 <body>
 <div class="app">
-    <div class="slider-track" id="track">
+  <div class="track" id="track">
 
-        <!-- 0: Monday – Push -->
-        <div class="slide">
-            <div class="card-head">
-                <div class="day-label">Day 1</div>
-                <div class="day-name">Monday</div>
-                <span class="day-badge badge-push">Push</span>
-            </div>
-            <div class="sep"></div>
-            <div class="coming-soon">
-                <div class="cs-ring"><div class="cs-dot"></div></div>
-                <div class="cs-muscles">Chest · Shoulders · Triceps</div>
-                <div class="cs-label">Details coming soon</div>
-            </div>
-        </div>
-
-        <!-- 1: Tuesday – Run -->
-        <div class="slide">
-            <div class="card-head">
-                <div class="day-label">Day 2</div>
-                <div class="day-name">Tuesday</div>
-                <span class="day-badge badge-run">Cardio</span>
-            </div>
-            <div class="sep"></div>
-            <div class="run-body">
-                <div class="run-block">
-                    <div class="run-block-label">Duration</div>
-                    <div class="run-block-value">30 – 40 min</div>
-                    <div class="run-block-desc">Zone 2 at conversational pace. Optimal for fat oxidation while preserving muscle.</div>
-                </div>
-                <div class="run-block">
-                    <div class="run-block-label">Intensity</div>
-                    <div class="run-block-value">Zone 2</div>
-                    <div class="run-block-desc">~65% max HR. You should be able to hold a full sentence. If you can't, slow down.</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 2: Wednesday – Pull -->
-        <div class="slide">
-            <div class="card-head">
-                <div class="day-label">Day 3</div>
-                <div class="day-name">Wednesday</div>
-                <span class="day-badge badge-pull">Pull</span>
-            </div>
-            <div class="sep"></div>
-            <div class="coming-soon">
-                <div class="cs-ring"><div class="cs-dot"></div></div>
-                <div class="cs-muscles">Back · Biceps</div>
-                <div class="cs-label">Details coming soon</div>
-            </div>
-        </div>
-
-        <!-- 3: Thursday – Legs -->
-        <div class="slide" style="position:relative;">
-            <div class="card-head">
-                <div class="day-label">Day 4</div>
-                <div class="day-name">Thursday</div>
-                <span class="day-badge badge-legs">Legs</span>
-            </div>
-            <div class="sep"></div>
-            <div class="exercise-list">
-                <div class="ex-row">
-                    <div class="ex-num">1</div>
-                    <div class="ex-info">
-                        <div class="ex-name">Back Squat</div>
-                        <div class="ex-muscles">Quads · Glutes · Strength</div>
-                    </div>
-                    <div class="ex-meta">
-                        <div class="ex-sets">4 × 4–6</div>
-                        <div class="ex-rest">3–4 min</div>
-                    </div>
-                </div>
-                <div class="ex-row">
-                    <div class="ex-num">2</div>
-                    <div class="ex-info">
-                        <div class="ex-name">Romanian Deadlift</div>
-                        <div class="ex-muscles">Hamstrings · Glutes</div>
-                    </div>
-                    <div class="ex-meta">
-                        <div class="ex-sets">3 × 8–10</div>
-                        <div class="ex-rest">2 min</div>
-                    </div>
-                </div>
-                <div class="ex-row">
-                    <div class="ex-num">3</div>
-                    <div class="ex-info">
-                        <div class="ex-name">Bulgarian Split Squat</div>
-                        <div class="ex-muscles">Quads · Glutes · Unilateral</div>
-                    </div>
-                    <div class="ex-meta">
-                        <div class="ex-sets">3 × 10–12</div>
-                        <div class="ex-rest">90s</div>
-                    </div>
-                </div>
-                <div class="ex-row">
-                    <div class="ex-num">4</div>
-                    <div class="ex-info">
-                        <div class="ex-name">Hip Thrust</div>
-                        <div class="ex-muscles">Glutes · Posture</div>
-                    </div>
-                    <div class="ex-meta">
-                        <div class="ex-sets">3 × 12–15</div>
-                        <div class="ex-rest">90s</div>
-                    </div>
-                </div>
-                <div class="ex-row">
-                    <div class="ex-num">5</div>
-                    <div class="ex-info">
-                        <div class="ex-name">Seated Leg Curl</div>
-                        <div class="ex-muscles">Hamstrings</div>
-                    </div>
-                    <div class="ex-meta">
-                        <div class="ex-sets">3 × 12–15</div>
-                        <div class="ex-rest">60s</div>
-                    </div>
-                </div>
-                <div class="ex-row">
-                    <div class="ex-num">6</div>
-                    <div class="ex-info">
-                        <div class="ex-name">Standing Calf Raise</div>
-                        <div class="ex-muscles">Calves</div>
-                    </div>
-                    <div class="ex-meta">
-                        <div class="ex-sets">4 × 15–20</div>
-                        <div class="ex-rest">60s</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 4: Friday – Upper -->
-        <div class="slide">
-            <div class="card-head">
-                <div class="day-label">Day 5</div>
-                <div class="day-name">Friday</div>
-                <span class="day-badge badge-upper">Upper</span>
-            </div>
-            <div class="sep"></div>
-            <div class="coming-soon">
-                <div class="cs-ring"><div class="cs-dot"></div></div>
-                <div class="cs-muscles">Chest · Back · Shoulders · Arms</div>
-                <div class="cs-label">Details coming soon</div>
-            </div>
-        </div>
-
-        <!-- 5: Saturday – Run -->
-        <div class="slide">
-            <div class="card-head">
-                <div class="day-label">Day 6</div>
-                <div class="day-name">Saturday</div>
-                <span class="day-badge badge-run">Cardio</span>
-            </div>
-            <div class="sep"></div>
-            <div class="run-body">
-                <div class="run-block">
-                    <div class="run-block-label">Duration</div>
-                    <div class="run-block-value">20 – 30 min</div>
-                    <div class="run-block-desc">Intervals if legs feel fresh. Easy jog if still sore from Thursday's leg day.</div>
-                </div>
-                <div class="run-block">
-                    <div class="run-block-label">Intervals (if fresh)</div>
-                    <div class="run-block-value">6 – 8 rounds</div>
-                    <div class="run-block-desc">1 min hard / 2 min easy. Skip intervals and keep it Zone 2 if Thursday soreness lingers.</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 6: Sunday – Rest -->
-        <div class="slide">
-            <div class="card-head">
-                <div class="day-label">Day 7</div>
-                <div class="day-name">Sunday</div>
-                <span class="day-badge badge-rest">Rest</span>
-            </div>
-            <div class="sep"></div>
-            <div class="rest-body">
-                <div class="rest-orb"></div>
-                <div class="rest-title">Recovery Day</div>
-                <div class="rest-desc">
-                    This is where the gains happen.<br>
-                    Sleep 7–9 hours. Stay hydrated.<br>
-                    Light walking is fine.
-                </div>
-            </div>
-        </div>
-
+    <!-- 0 Monday Push -->
+    <div class="slide" data-type="push" data-color="#FF6B35">
+      <div class="card-head">
+        <div class="head-top"><span class="day-label">Mon · Day 1</span><span class="today-pill">Today</span></div>
+        <div class="day-name">Monday</div>
+        <div class="head-bot"><span class="badge b-push">Push</span></div>
+      </div>
+      <div class="sep"></div>
+      <div class="cs-wrap">
+        <div class="cs-ring"><div class="cs-dot"></div></div>
+        <div class="cs-musc">Chest · Shoulders · Triceps</div>
+        <div class="cs-note">Details coming soon</div>
+      </div>
     </div>
 
-    <div class="nav" id="nav"></div>
+    <!-- 1 Tuesday Run -->
+    <div class="slide" data-type="run" data-color="#14B8A6">
+      <div class="card-head">
+        <div class="head-top"><span class="day-label">Tue · Day 2</span><span class="today-pill">Today</span></div>
+        <div class="day-name">Tuesday</div>
+        <div class="head-bot"><span class="badge b-run">Cardio</span></div>
+      </div>
+      <div class="sep"></div>
+      <div class="run-body">
+        <div class="run-block">
+          <div class="run-lbl">Duration</div>
+          <div class="run-val">30–40 min</div>
+          <div class="run-desc">Zone 2 at conversational pace. Optimal for fat oxidation while preserving muscle.</div>
+        </div>
+        <div class="run-block">
+          <div class="run-lbl">Intensity</div>
+          <div class="run-val">Zone 2</div>
+          <div class="run-desc">~65% max HR. You should be able to hold a full sentence. If you can't, slow down.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2 Wednesday Pull -->
+    <div class="slide" data-type="pull" data-color="#3B82F6">
+      <div class="card-head">
+        <div class="head-top"><span class="day-label">Wed · Day 3</span><span class="today-pill">Today</span></div>
+        <div class="day-name">Wednesday</div>
+        <div class="head-bot"><span class="badge b-pull">Pull</span></div>
+      </div>
+      <div class="sep"></div>
+      <div class="cs-wrap">
+        <div class="cs-ring"><div class="cs-dot"></div></div>
+        <div class="cs-musc">Back · Biceps</div>
+        <div class="cs-note">Details coming soon</div>
+      </div>
+    </div>
+
+    <!-- 3 Thursday Legs -->
+    <div class="slide" data-type="legs" data-color="#22C55E">
+      <div class="card-head">
+        <div class="head-top"><span class="day-label">Thu · Day 4</span><span class="today-pill">Today</span></div>
+        <div class="day-name">Thursday</div>
+        <div class="head-bot">
+          <span class="badge b-legs">Legs</span>
+          <span class="day-stats" id="st3" data-base="~55 min">0 / 6 · ~55 min</span>
+        </div>
+        <div class="prog-wrap"><div class="prog-bar" id="pb3" style="background:var(--legs)"></div></div>
+      </div>
+      <div class="sep"></div>
+      <div class="ex-list" id="el3">
+
+        <div class="ex-row">
+          <button class="ex-cb" onclick="tap(this)">
+            <span class="num">1</span>
+            <span class="ck"><svg viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          </button>
+          <div class="ex-info"><div class="ex-name">Back Squat</div><div class="ex-musc">Quads · Glutes · Strength</div></div>
+          <div class="ex-meta">
+            <div class="ex-sets">4 × 4–6</div>
+            <button class="ex-rest" data-s="210" data-n="Back Squat" onclick="openTimer(this)">
+              <svg viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.2"/><path d="M5 3v2.2l1.4.9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>3–4 min
+            </button>
+          </div>
+        </div>
+
+        <div class="ex-row">
+          <button class="ex-cb" onclick="tap(this)">
+            <span class="num">2</span>
+            <span class="ck"><svg viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          </button>
+          <div class="ex-info"><div class="ex-name">Romanian Deadlift</div><div class="ex-musc">Hamstrings · Glutes</div></div>
+          <div class="ex-meta">
+            <div class="ex-sets">3 × 8–10</div>
+            <button class="ex-rest" data-s="120" data-n="Romanian Deadlift" onclick="openTimer(this)">
+              <svg viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.2"/><path d="M5 3v2.2l1.4.9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>2 min
+            </button>
+          </div>
+        </div>
+
+        <div class="ex-row">
+          <button class="ex-cb" onclick="tap(this)">
+            <span class="num">3</span>
+            <span class="ck"><svg viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          </button>
+          <div class="ex-info"><div class="ex-name">Bulgarian Split Squat</div><div class="ex-musc">Quads · Glutes · Unilateral</div></div>
+          <div class="ex-meta">
+            <div class="ex-sets">3 × 10–12</div>
+            <button class="ex-rest" data-s="90" data-n="Bulgarian Split Squat" onclick="openTimer(this)">
+              <svg viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.2"/><path d="M5 3v2.2l1.4.9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>90s
+            </button>
+          </div>
+        </div>
+
+        <div class="ex-row">
+          <button class="ex-cb" onclick="tap(this)">
+            <span class="num">4</span>
+            <span class="ck"><svg viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          </button>
+          <div class="ex-info"><div class="ex-name">Hip Thrust</div><div class="ex-musc">Glutes · Posture</div></div>
+          <div class="ex-meta">
+            <div class="ex-sets">3 × 12–15</div>
+            <button class="ex-rest" data-s="90" data-n="Hip Thrust" onclick="openTimer(this)">
+              <svg viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.2"/><path d="M5 3v2.2l1.4.9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>90s
+            </button>
+          </div>
+        </div>
+
+        <div class="ex-row">
+          <button class="ex-cb" onclick="tap(this)">
+            <span class="num">5</span>
+            <span class="ck"><svg viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          </button>
+          <div class="ex-info"><div class="ex-name">Seated Leg Curl</div><div class="ex-musc">Hamstrings</div></div>
+          <div class="ex-meta">
+            <div class="ex-sets">3 × 12–15</div>
+            <button class="ex-rest" data-s="60" data-n="Seated Leg Curl" onclick="openTimer(this)">
+              <svg viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.2"/><path d="M5 3v2.2l1.4.9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>60s
+            </button>
+          </div>
+        </div>
+
+        <div class="ex-row">
+          <button class="ex-cb" onclick="tap(this)">
+            <span class="num">6</span>
+            <span class="ck"><svg viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          </button>
+          <div class="ex-info"><div class="ex-name">Standing Calf Raise</div><div class="ex-musc">Calves</div></div>
+          <div class="ex-meta">
+            <div class="ex-sets">4 × 15–20</div>
+            <button class="ex-rest" data-s="60" data-n="Standing Calf Raise" onclick="openTimer(this)">
+              <svg viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.2"/><path d="M5 3v2.2l1.4.9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>60s
+            </button>
+          </div>
+        </div>
+
+        <div class="done-overlay" id="do3">
+          <div class="done-ring">
+            <svg viewBox="0 0 72 72">
+              <circle class="r-bg" cx="36" cy="36" r="30"/>
+              <circle class="r-fg" cx="36" cy="36" r="30" transform="rotate(-90 36 36)" style="stroke:var(--legs)"/>
+            </svg>
+            <div class="done-ck">
+              <svg viewBox="0 0 26 26" fill="none"><polyline points="4,13 11,20 22,7" stroke="#22C55E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+          </div>
+          <div class="done-title">Workout Complete</div>
+          <div class="done-sub">6 exercises · 20 sets</div>
+          <button class="reset-btn" onclick="resetDay(3)">Reset</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4 Friday Upper -->
+    <div class="slide" data-type="upper" data-color="#A855F7">
+      <div class="card-head">
+        <div class="head-top"><span class="day-label">Fri · Day 5</span><span class="today-pill">Today</span></div>
+        <div class="day-name">Friday</div>
+        <div class="head-bot"><span class="badge b-upper">Upper</span></div>
+      </div>
+      <div class="sep"></div>
+      <div class="cs-wrap">
+        <div class="cs-ring"><div class="cs-dot"></div></div>
+        <div class="cs-musc">Chest · Back · Shoulders · Arms</div>
+        <div class="cs-note">Details coming soon</div>
+      </div>
+    </div>
+
+    <!-- 5 Saturday Run -->
+    <div class="slide" data-type="run" data-color="#14B8A6">
+      <div class="card-head">
+        <div class="head-top"><span class="day-label">Sat · Day 6</span><span class="today-pill">Today</span></div>
+        <div class="day-name">Saturday</div>
+        <div class="head-bot"><span class="badge b-run">Cardio</span></div>
+      </div>
+      <div class="sep"></div>
+      <div class="run-body">
+        <div class="run-block">
+          <div class="run-lbl">Duration</div>
+          <div class="run-val">20–30 min</div>
+          <div class="run-desc">Intervals if legs feel fresh. Easy jog if still sore from Thursday.</div>
+        </div>
+        <div class="run-block">
+          <div class="run-lbl">Intervals (if fresh)</div>
+          <div class="run-val">6–8 rounds</div>
+          <div class="run-desc">1 min hard / 2 min easy. Keep Zone 2 if Thursday soreness lingers.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6 Sunday Rest -->
+    <div class="slide" data-type="rest" data-color="#6B7280">
+      <div class="card-head">
+        <div class="head-top"><span class="day-label">Sun · Day 7</span><span class="today-pill">Today</span></div>
+        <div class="day-name">Sunday</div>
+        <div class="head-bot"><span class="badge b-rest">Rest</span></div>
+      </div>
+      <div class="sep"></div>
+      <div class="rest-wrap">
+        <div class="rest-orb"></div>
+        <div class="rest-ttl">Recovery Day</div>
+        <div class="rest-desc">This is where the gains happen.<br>Sleep 7–9 hours. Stay hydrated.<br>Light walking is fine.</div>
+      </div>
+    </div>
+
+  </div>
+  <div class="nav" id="nav"></div>
+</div>
+
+<!-- Rest Timer Overlay -->
+<div class="t-ov" id="tov">
+  <div class="t-back" onclick="closeTimer()"></div>
+  <div class="t-card">
+    <div class="t-ex" id="tex"></div>
+    <div class="t-ring">
+      <svg viewBox="0 0 152 152">
+        <circle class="t-rbg" cx="76" cy="76" r="64"/>
+        <circle class="t-rfg" id="tfg" cx="76" cy="76" r="64" transform="rotate(-90 76 76)"/>
+      </svg>
+      <div class="t-txt">
+        <div class="t-cnt" id="tct">0:00</div>
+        <div class="t-sub" id="tsb">rest</div>
+      </div>
+    </div>
+    <div class="t-hint" id="thi">Tap to dismiss</div>
+    <button class="t-skip" onclick="closeTimer()">Skip Rest</button>
+  </div>
 </div>
 
 <script>
-    const track = document.getElementById('track');
-    const nav   = document.getElementById('nav');
-    const total = 7;
-    let current = 0;
+// ── Slides ──
+const track = document.getElementById('track');
+const navEl  = document.getElementById('nav');
+const TOTAL  = 7;
+let cur = 0;
 
-    // Map JS getDay() (0=Sun) → slide index (0=Mon)
-    const dayToSlide = [6, 0, 1, 2, 3, 4, 5];
-    const today = dayToSlide[new Date().getDay()];
+const TODAY = [6,0,1,2,3,4,5][new Date().getDay()];
 
-    // Build dots
-    for (let i = 0; i < total; i++) {
-        const d = document.createElement('div');
-        d.className = 'dot';
-        d.addEventListener('click', () => goTo(i));
-        nav.appendChild(d);
+// Set accent per slide and show today pill
+document.querySelectorAll('.slide').forEach((sl, i) => {
+    const color = sl.dataset.color || '#fff';
+    sl.style.setProperty('--accent', color);
+    if (i === TODAY) {
+        const pill = sl.querySelector('.today-pill');
+        if (pill) { pill.style.display = 'inline-flex'; pill.style.background = color; }
     }
+});
 
-    function goTo(idx) {
-        current = Math.max(0, Math.min(total - 1, idx));
-        track.style.transform = `translateX(${-current * 100}vw)`;
-        document.querySelectorAll('.dot').forEach((d, i) => {
-            d.classList.toggle('active', i === current);
-        });
+// Dots
+for (let i = 0; i < TOTAL; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot';
+    d.onclick = () => goTo(i);
+    navEl.appendChild(d);
+}
+
+function goTo(i, anim = true) {
+    cur = Math.max(0, Math.min(TOTAL - 1, i));
+    if (!anim) track.classList.add('instant');
+    track.style.transform = `translateX(${-cur * 100}vw)`;
+    if (!anim) requestAnimationFrame(() => track.classList.remove('instant'));
+    document.querySelectorAll('.dot').forEach((d, j) => d.classList.toggle('on', j === cur));
+}
+goTo(TODAY, false);
+
+// ── Swipe ──
+let sx = 0, st = 0, drag = false;
+
+function dragStart(x) { sx = x; st = Date.now(); drag = true; track.classList.add('instant'); }
+function dragMove(x)  { if (!drag) return; track.style.transform = `translateX(calc(${-cur*100}vw + ${x-sx}px))`; }
+function dragEnd(x) {
+    if (!drag) return; drag = false; track.classList.remove('instant');
+    const dx = x - sx, vel = Math.abs(dx) / Math.max(1, Date.now() - st);
+    const thr = vel > 0.35 ? 20 : window.innerWidth * 0.22;
+    if (dx < -thr && cur < TOTAL-1) goTo(cur+1);
+    else if (dx > thr && cur > 0) goTo(cur-1);
+    else goTo(cur);
+}
+track.addEventListener('touchstart', e => dragStart(e.touches[0].clientX), {passive:true});
+track.addEventListener('touchmove',  e => dragMove(e.touches[0].clientX),  {passive:true});
+track.addEventListener('touchend',   e => dragEnd(e.changedTouches[0].clientX));
+track.addEventListener('mousedown',  e => { if (e.button === 0) dragStart(e.clientX); });
+document.addEventListener('mousemove', e => dragMove(e.clientX));
+document.addEventListener('mouseup',   e => dragEnd(e.clientX));
+document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') goTo(cur+1);
+    if (e.key === 'ArrowLeft')  goTo(cur-1);
+});
+
+// ── Checkboxes ──
+function tap(btn) {
+    const on = btn.classList.toggle('on');
+    btn.closest('.ex-row').classList.toggle('done', on);
+    if (on && navigator.vibrate) navigator.vibrate(22);
+    syncProgress(btn.closest('.ex-list'));
+}
+
+function syncProgress(list) {
+    if (!list) return;
+    const rows  = list.querySelectorAll('.ex-row');
+    const done  = list.querySelectorAll('.ex-cb.on').length;
+    const total = rows.length;
+    const head  = list.closest('.slide').querySelector('.card-head');
+    const pb    = head && head.querySelector('.prog-bar');
+    const st    = head && head.querySelector('.day-stats');
+    if (pb) pb.style.width = `${(done/total)*100}%`;
+    if (st) {
+        const base = st.dataset.base || '';
+        st.textContent = `${done} / ${total}${base ? ' · ' + base : ''}`;
     }
+    if (done === total) setTimeout(() => showDone(list), 380);
+}
 
-    // Start on today's slide
-    track.style.transition = 'none';
-    goTo(today);
+function showDone(list) {
+    const ov = list.querySelector('.done-overlay');
+    if (!ov) return;
+    ov.classList.add('show');
+    beep(523,.15,.18);
+    setTimeout(() => beep(659,.12,.18), 160);
+    setTimeout(() => beep(784,.1,.28), 310);
+    if (navigator.vibrate) navigator.vibrate([80,50,120]);
+}
+
+function resetDay(idx) {
+    const el = document.getElementById(`el${idx}`);
+    if (!el) return;
+    el.querySelectorAll('.ex-cb.on').forEach(b => {
+        b.classList.remove('on');
+        b.closest('.ex-row').classList.remove('done');
+    });
+    const ov = document.getElementById(`do${idx}`);
+    if (ov) ov.classList.remove('show');
+    syncProgress(el);
+}
+
+// ── Rest Timer ──
+const C = 2 * Math.PI * 64;
+let tiv = null, tRem = 0, tTot = 0;
+
+const tov = document.getElementById('tov');
+const tfg = document.getElementById('tfg');
+const tct = document.getElementById('tct');
+const tsb = document.getElementById('tsb');
+const tex = document.getElementById('tex');
+const thi = document.getElementById('thi');
+
+tfg.style.strokeDasharray = C;
+tfg.style.strokeDashoffset = C;
+
+function openTimer(btn) {
+    clearInterval(tiv);
+    tTot = tRem = parseInt(btn.dataset.s);
+    const color = btn.closest('.slide')?.dataset.color || '#22C55E';
+    tfg.style.stroke = color;
+    tex.textContent = btn.dataset.n;
+    thi.textContent = 'Tap to dismiss';
+    tct.style.color = '';
+    // Reset circle instantly then animate
+    tfg.style.transition = 'none';
+    tfg.style.strokeDashoffset = '0';
     requestAnimationFrame(() => {
-        track.style.transition = '';
+        tfg.style.transition = 'stroke-dashoffset 1s linear';
     });
+    renderFace();
+    tov.classList.add('open');
+    tiv = setInterval(tick, 1000);
+}
 
-    // ── Touch ──
-    let tx0 = 0, dragging = false;
+function tick() {
+    tRem--;
+    if (tRem <= 0) {
+        clearInterval(tiv);
+        tfg.style.strokeDashoffset = C;
+        const color = tfg.style.stroke;
+        tct.textContent = 'Go!';
+        tct.style.color = color;
+        thi.textContent = 'Rest complete — tap to close';
+        beep(523,.2,.15);
+        setTimeout(() => beep(659,.18,.15), 155);
+        setTimeout(() => beep(784,.15,.25), 310);
+        if (navigator.vibrate) navigator.vibrate([150,80,200]);
+    } else {
+        tfg.style.strokeDashoffset = C * (tRem / tTot);
+        renderFace();
+    }
+}
 
-    track.addEventListener('touchstart', e => {
-        tx0 = e.touches[0].clientX;
-        dragging = true;
-        track.classList.add('dragging');
-    }, { passive: true });
+function renderFace() {
+    const m = Math.floor(tRem/60), s = tRem % 60;
+    tct.textContent = m > 0 ? `${m}:${String(s).padStart(2,'0')}` : `${tRem}s`;
+    tsb.textContent = `of ${fmtTime(tTot)} rest`;
+}
 
-    track.addEventListener('touchmove', e => {
-        if (!dragging) return;
-        const dx = e.touches[0].clientX - tx0;
-        track.style.transform = `translateX(calc(${-current * 100}vw + ${dx}px))`;
-    }, { passive: true });
+function fmtTime(s) {
+    return s >= 60 ? `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}` : `${s}s`;
+}
 
-    track.addEventListener('touchend', e => {
-        if (!dragging) return;
-        dragging = false;
-        track.classList.remove('dragging');
-        const dx = e.changedTouches[0].clientX - tx0;
-        const threshold = window.innerWidth * 0.22;
-        if (dx < -threshold) goTo(current + 1);
-        else if (dx > threshold) goTo(current - 1);
-        else goTo(current);
-    });
+function closeTimer() { clearInterval(tiv); tov.classList.remove('open'); }
 
-    // ── Mouse (desktop) ──
-    let mx0 = 0, mDragging = false;
-
-    track.addEventListener('mousedown', e => {
-        mx0 = e.clientX;
-        mDragging = true;
-        track.classList.add('dragging');
-    });
-
-    document.addEventListener('mousemove', e => {
-        if (!mDragging) return;
-        const dx = e.clientX - mx0;
-        track.style.transform = `translateX(calc(${-current * 100}vw + ${dx}px))`;
-    });
-
-    document.addEventListener('mouseup', e => {
-        if (!mDragging) return;
-        mDragging = false;
-        track.classList.remove('dragging');
-        const dx = e.clientX - mx0;
-        const threshold = window.innerWidth * 0.22;
-        if (dx < -threshold) goTo(current + 1);
-        else if (dx > threshold) goTo(current - 1);
-        else goTo(current);
-    });
-
-    // ── Keyboard ──
-    document.addEventListener('keydown', e => {
-        if (e.key === 'ArrowRight') goTo(current + 1);
-        if (e.key === 'ArrowLeft')  goTo(current - 1);
-    });
+// ── Audio ──
+let actx;
+function beep(freq, gain, dur) {
+    try {
+        if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+        const o = actx.createOscillator(), g = actx.createGain();
+        o.connect(g); g.connect(actx.destination);
+        o.type = 'sine'; o.frequency.value = freq;
+        g.gain.setValueAtTime(gain, actx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + dur);
+        o.start(); o.stop(actx.currentTime + dur);
+    } catch(_) {}
+}
 </script>
 </body>
 </html>
