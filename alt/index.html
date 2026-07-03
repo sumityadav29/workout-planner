@@ -103,6 +103,8 @@ tailwind.config = {
 const PLAN = [
   {
     day: 'Monday', type: 'Push', color: 'horange', time: '~60 min',
+    wu: '5 min · arm circles, band pull-aparts, 2 ramp-up bench sets',
+    cd: '3 min · doorway pec stretch, overhead tricep stretch',
     sections: [{ label: null, ex: [
       { n: 'Barbell Bench Press', m: 'Chest · Shoulders · Triceps', s: '4 × 4–6', r: '3 min', rs: 180 },
       { n: 'Overhead Press', m: 'Shoulders · Triceps', s: '3 × 6–8', r: '2 min', rs: 120 },
@@ -114,10 +116,14 @@ const PLAN = [
   },
   {
     day: 'Tuesday', type: 'Cardio', color: 'hteal', time: '30–40 min',
+    wu: '5 min brisk walk · leg swings · ankle circles',
+    cd: '5 min walk · calf, hamstring + hip flexor stretches',
     run: { title: 'Zone 2 Run', desc: '30–40 minutes at conversational pace (~65% max HR). You should be able to hold a full sentence — if you can\'t, slow down. Optimal for fat oxidation while preserving muscle.' }
   },
   {
     day: 'Wednesday', type: 'Pull + Core', color: 'hblue', time: '~65 min',
+    wu: '5 min · dead hangs, scap pull-ups, light row ramp-ups',
+    cd: '3 min · lat stretch on rack, child\'s pose',
     sections: [
       { label: null, ex: [
         { n: 'Barbell Row', m: 'Back thickness · Biceps', s: '4 × 4–6', r: '3 min', rs: 180 },
@@ -135,6 +141,8 @@ const PLAN = [
   },
   {
     day: 'Thursday', type: 'Legs', color: 'hgreen', time: '~55 min',
+    wu: '8 min · easy bike, leg swings, 90/90 hips, 2 ramp-up squat sets',
+    cd: '5 min · couch stretch, pigeon, standing hamstring stretch',
     sections: [{ label: null, ex: [
       { n: 'Back Squat', m: 'Quads · Glutes · Strength', s: '4 × 4–6', r: '3–4 min', rs: 210 },
       { n: 'Romanian Deadlift', m: 'Hamstrings · Glutes', s: '3 × 8–10', r: '2 min', rs: 120 },
@@ -146,6 +154,8 @@ const PLAN = [
   },
   {
     day: 'Friday', type: 'Upper + Core', color: 'hpurple', time: '~55 min',
+    wu: '5 min · arm circles, scap push-ups, light first set of each pair',
+    cd: '3 min · pec, lat + cross-body shoulder stretch',
     sections: [
       { label: null, ex: [
         { n: 'Cable Fly', m: 'Chest', s: '3 × 12–15', r: null, ss: 'A1' },
@@ -165,6 +175,8 @@ const PLAN = [
   },
   {
     day: 'Saturday', type: 'Cardio', color: 'hteal', time: '20–30 min',
+    wu: '5 min easy jog · leg swings · high knees, A-skips',
+    cd: '5 min walk · calf, quad + hip flexor stretches',
     run: { title: 'Intervals or Easy Jog', desc: '6–8 rounds of 1 min hard / 2 min easy if legs feel fresh. Keep it an easy Zone 2 jog if Thursday soreness lingers.' }
   },
   {
@@ -196,6 +208,12 @@ function render() {
   const d = PLAN[cur];
   const isToday = cur === TODAY;
   let inner = '';
+
+  const auxEl = (tag, txt, cls) => txt ? `
+    <div class="flex items-baseline gap-2 rounded-md border-[1.5px] border-smoke bg-tan px-3 py-2 ${cls || ''}">
+      <span class="shrink-0 font-mono text-[9px] font-bold uppercase tracking-[0.15em] ${tag === 'Warm-up' ? 'text-horange' : 'text-hblue'}">${tag}</span>
+      <span class="truncate text-xs font-medium text-gray2">${txt}</span>
+    </div>` : '';
 
   const headEl = `
     <div class="flex items-center justify-between">
@@ -250,7 +268,9 @@ function render() {
       <div class="mt-3 h-3 w-full overflow-hidden rounded border-[1.5px] border-ink bg-white">
         <div class="h-full transition-all duration-300" style="width:${pct}%;background:${BAR[d.color]}"></div>
       </div>
-      <div class="mt-3">${sectionsHtml}</div>
+      ${auxEl('Warm-up', d.wu, 'mt-3')}
+      <div class="mt-1">${sectionsHtml}</div>
+      ${auxEl('Cool-down', d.cd, 'mt-1')}
       ${checked === total ? `
         <div class="mt-4 flex items-center justify-between rounded-md border-[1.5px] border-ink bg-hyellow px-4 py-3">
           <p class="text-sm font-extrabold">Workout complete 🦔</p>
@@ -259,11 +279,13 @@ function render() {
   } else {
     inner = `
       ${headEl}
-      <div class="mt-5 rounded-md border-[1.5px] border-smoke bg-tan p-5">
+      ${auxEl('Warm-up', d.wu, 'mt-5')}
+      <div class="mt-2 rounded-md border-[1.5px] border-smoke bg-tan p-5">
         <h3 class="text-sm font-extrabold">${d.run.title}</h3>
         <p class="mt-2 text-sm font-medium leading-relaxed text-gray2">${d.run.desc}</p>
         ${d.time ? `<p class="mt-3 font-mono text-[11px] font-bold uppercase tracking-wide text-gray2">Duration: ${d.time}</p>` : ''}
-      </div>`;
+      </div>
+      ${auxEl('Cool-down', d.cd, 'mt-2')}`;
   }
 
   document.getElementById('panel').innerHTML = `
