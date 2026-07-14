@@ -1,679 +1,366 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Workout Plan</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <style>
-        *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none; }
-
-        :root {
-            --bg:#0A0A0A; --surface:#111; --border:#1C1C1C;
-            --t1:#F0F0F0; --t2:#666; --t3:#2E2E2E;
-            --push:#FF6B35; --pull:#3B82F6; --legs:#22C55E;
-            --upper:#A855F7; --run:#14B8A6; --rest:#6B7280;
-        }
-
-        html, body { height:100%; width:100%; background:var(--bg); color:var(--t1);
-            font-family:'Inter',system-ui,sans-serif; overflow:hidden; position:fixed; }
-
-        .app { height:100%; width:100%; display:flex; flex-direction:column; overflow:hidden; }
-
-        .track { flex:1; display:flex; will-change:transform; touch-action:pan-y;
-            transition:transform 0.38s cubic-bezier(0.25,0.46,0.45,0.94); }
-        .track.instant { transition:none; }
-
-        .slide { min-width:100vw; height:100%; display:flex; flex-direction:column; overflow:hidden; position:relative; }
-        .slide[data-type=push]  { background:radial-gradient(ellipse at 50% 0%,rgba(255,107,53,.07) 0%,transparent 55%); }
-        .slide[data-type=pull]  { background:radial-gradient(ellipse at 50% 0%,rgba(59,130,246,.07) 0%,transparent 55%); }
-        .slide[data-type=legs]  { background:radial-gradient(ellipse at 50% 0%,rgba(34,197,94,.07) 0%,transparent 55%); }
-        .slide[data-type=upper] { background:radial-gradient(ellipse at 50% 0%,rgba(168,85,247,.07) 0%,transparent 55%); }
-        .slide[data-type=run]   { background:radial-gradient(ellipse at 50% 0%,rgba(20,184,166,.07) 0%,transparent 55%); }
-
-        /* Header */
-        .card-head { padding:50px 28px 16px; flex-shrink:0; }
-        .head-top { display:flex; align-items:center; gap:8px; margin-bottom:5px; }
-        .day-label { font-size:11px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:var(--t3); }
-        .today-pill { display:none; padding:2px 8px; border-radius:100px; font-size:9px;
-            font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#000; }
-        .day-name { font-size:36px; font-weight:900; letter-spacing:-.04em; line-height:1; margin-bottom:13px; }
-        .head-bot { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-        .badge { display:inline-flex; align-items:center; padding:5px 12px; border-radius:100px;
-            font-size:11px; font-weight:700; letter-spacing:.04em; }
-        .b-push  { background:rgba(255,107,53,.12); color:var(--push); }
-        .b-pull  { background:rgba(59,130,246,.12);  color:var(--pull); }
-        .b-legs  { background:rgba(34,197,94,.12);   color:var(--legs); }
-        .b-upper { background:rgba(168,85,247,.12);  color:var(--upper); }
-        .b-run   { background:rgba(20,184,166,.12);  color:var(--run); }
-        .b-rest  { background:rgba(107,114,128,.12); color:var(--rest); }
-        .b-core  { background:rgba(255,255,255,.05); color:var(--t3); }
-        .day-stats { font-size:11px; color:var(--t3); font-weight:500; margin-left:2px; }
-        .prog-wrap { margin-top:14px; height:2px; background:var(--border); border-radius:100px; overflow:hidden; }
-        .prog-bar  { height:100%; border-radius:100px; width:0%; transition:width .4s cubic-bezier(.34,1.56,.64,1); }
-
-        .sep { height:1px; background:var(--border); margin:0 28px; flex-shrink:0; }
-
-        /* Exercise list */
-        .ex-list { flex:1; padding:4px 28px 0; display:flex; flex-direction:column; overflow:hidden; position:relative; }
-        .ex-row { display:flex; align-items:center; gap:13px; padding:10px 0;
-            border-bottom:1px solid #161616; flex-shrink:0; transition:opacity .25s ease; }
-        .ex-row:last-child { border-bottom:none; }
-        .ex-row.done { opacity:.35; }
-
-        /* Section divider (Core) */
-        .ex-divider { display:flex; align-items:center; gap:8px; padding:7px 0 3px; flex-shrink:0; }
-        .ex-divider::before, .ex-divider::after { content:''; flex:1; height:1px; background:var(--border); }
-        .ex-divider span { font-size:9px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--t3); }
-
-        /* Warm-up / cool-down strips */
-        .aux { display:flex; align-items:baseline; gap:8px; padding:8px 0; flex-shrink:0;
-            border-bottom:1px solid #161616; min-width:0; }
-        .aux-cd { border-bottom:none; border-top:1px solid #161616; margin-top:auto; }
-        .aux-tag { font-size:9px; font-weight:800; letter-spacing:.12em; text-transform:uppercase;
-            color:var(--accent); opacity:.8; flex-shrink:0; }
-        .aux-txt { font-size:10.5px; color:var(--t2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-        .run-aux { display:flex; align-items:baseline; gap:8px; flex-shrink:0; min-width:0; }
-
-        /* Superset no-rest label */
-        .ss-hint { font-size:10px; color:var(--accent); margin-top:3px; opacity:.6; }
-
-        /* Checkbox */
-        .ex-cb { width:28px; height:28px; border-radius:50%; border:1.5px solid #2A2A2A;
-            background:transparent; display:flex; align-items:center; justify-content:center;
-            cursor:pointer; flex-shrink:0; position:relative; outline:none;
-            transition:background .2s, border-color .2s, transform .15s cubic-bezier(.34,1.56,.64,1); }
-        .ex-cb:active { transform:scale(.85); }
-        .ex-cb .num { font-size:11px; font-weight:700; color:#3A3A3A; position:absolute; transition:opacity .15s; }
-        .ex-cb .ck  { position:absolute; opacity:0; transform:scale(0);
-            transition:opacity .15s, transform .2s cubic-bezier(.34,1.56,.64,1); }
-        .ex-cb .ck svg { width:13px; height:13px; }
-        .ex-cb.on { border-color:var(--accent); background:var(--accent); }
-        .ex-cb.on .num { opacity:0; }
-        .ex-cb.on .ck  { opacity:1; transform:scale(1); }
-
-        .ex-info { flex:1; min-width:0; }
-        .ex-name { font-size:14px; font-weight:500; color:var(--t1);
-            white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-        .ex-row.done .ex-name { text-decoration:line-through; text-decoration-color:#333; }
-        .ex-musc { font-size:11px; color:var(--t3); margin-top:2px; }
-        .ex-musc .ss { color:var(--accent); opacity:.55; font-weight:600; }
-
-        .ex-meta { text-align:right; flex-shrink:0; }
-        .ex-sets { font-size:13px; font-weight:700; color:var(--t1); }
-        .ex-rest { display:inline-flex; align-items:center; gap:3px; margin-top:3px;
-            font-size:11px; color:var(--t3); background:none; border:none; cursor:pointer;
-            padding:0; font-family:inherit; transition:color .2s; }
-        .ex-rest:active { color:var(--accent); }
-        .ex-rest svg { width:9px; height:9px; }
-
-        /* Completion overlay */
-        .done-overlay { position:absolute; inset:0; display:flex; flex-direction:column;
-            align-items:center; justify-content:center; gap:10px;
-            background:var(--bg); opacity:0; pointer-events:none; transition:opacity .35s ease; }
-        .done-overlay.show { opacity:1; pointer-events:all; }
-        .done-ring { width:72px; height:72px; position:relative; margin-bottom:4px; }
-        .done-ring svg { width:72px; height:72px; }
-        .r-bg { fill:none; stroke:#1C1C1C; stroke-width:2.5; }
-        .r-fg { fill:none; stroke-width:2.5; stroke-linecap:round;
-            stroke-dasharray:188.5; stroke-dashoffset:188.5;
-            transition:stroke-dashoffset .6s cubic-bezier(.34,1.56,.64,1); }
-        .done-ck { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) scale(0);
-            transition:transform .25s cubic-bezier(.34,1.56,.64,1) .25s; }
-        .done-ck svg { width:26px; height:26px; }
-        .done-overlay.show .r-fg { stroke-dashoffset:0; }
-        .done-overlay.show .done-ck { transform:translate(-50%,-50%) scale(1); }
-        .done-title { font-size:18px; font-weight:800; letter-spacing:-.02em; }
-        .done-sub   { font-size:12px; color:var(--t2); }
-        .reset-btn  { margin-top:6px; padding:8px 22px; border-radius:100px; border:1px solid #222;
-            background:transparent; color:var(--t2); font-size:12px; font-weight:600;
-            font-family:inherit; cursor:pointer; transition:border-color .2s,color .2s; }
-        .reset-btn:hover { border-color:#444; color:var(--t1); }
-
-        /* Run */
-        .run-body { flex:1; padding:18px 28px; display:flex; flex-direction:column; gap:12px; overflow:hidden; }
-        .run-block { background:var(--surface); border:1px solid var(--border); border-radius:18px;
-            padding:20px; flex:1; display:flex; flex-direction:column; justify-content:center; }
-        .run-lbl  { font-size:10px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--t3); margin-bottom:6px; }
-        .run-val  { font-size:26px; font-weight:800; letter-spacing:-.02em; color:var(--run); margin-bottom:5px; }
-        .run-desc { font-size:12px; color:var(--t2); line-height:1.6; }
-
-        /* Rest day */
-        .rest-wrap { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:11px; }
-        .rest-orb  { width:68px; height:68px; border-radius:50%; background:var(--surface); border:1px solid var(--border); margin-bottom:4px; }
-        .rest-ttl  { font-size:16px; font-weight:700; color:var(--rest); }
-        .rest-desc { font-size:13px; color:var(--t3); text-align:center; line-height:1.7; }
-
-        /* Nav dots */
-        .nav { display:flex; align-items:center; justify-content:center; gap:6px;
-            padding:15px 28px; padding-bottom:calc(15px + env(safe-area-inset-bottom,0px)); flex-shrink:0; }
-        .dot { height:5px; width:5px; border-radius:100px; background:#242424; transition:all .3s ease; cursor:pointer; }
-        .dot.on { width:20px; background:var(--t1); }
-
-        /* Timer overlay */
-        .t-ov { position:fixed; inset:0; z-index:100; display:flex; align-items:flex-end;
-            pointer-events:none; opacity:0; transition:opacity .3s ease; }
-        .t-ov.open { pointer-events:all; opacity:1; }
-        .t-back { position:absolute; inset:0; background:rgba(0,0,0,.75);
-            backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); }
-        .t-card { position:relative; width:100%; background:#111; border-top:1px solid #1E1E1E;
-            border-radius:24px 24px 0 0; padding:28px;
-            padding-bottom:calc(28px + env(safe-area-inset-bottom,0px));
-            display:flex; flex-direction:column; align-items:center; gap:10px;
-            transform:translateY(100%); transition:transform .38s cubic-bezier(0.25,0.46,0.45,0.94); }
-        .t-ov.open .t-card { transform:translateY(0); }
-        .t-ex  { font-size:12px; font-weight:600; color:var(--t3); letter-spacing:.04em; }
-        .t-ring { position:relative; width:152px; height:152px; margin:4px 0; }
-        .t-ring svg { width:152px; height:152px; }
-        .t-rbg { fill:none; stroke:#1C1C1C; stroke-width:4; }
-        .t-rfg { fill:none; stroke-width:4; stroke-linecap:round; }
-        .t-txt { position:absolute; inset:0; display:flex; flex-direction:column;
-            align-items:center; justify-content:center; gap:1px; }
-        .t-cnt { font-size:40px; font-weight:800; letter-spacing:-.04em;
-            font-variant-numeric:tabular-nums; color:var(--t1); }
-        .t-sub { font-size:11px; color:var(--t3); }
-        .t-hint { font-size:11px; color:var(--t3); }
-        .t-skip { padding:9px 26px; border-radius:100px; border:1px solid #1E1E1E; background:transparent;
-            color:var(--t2); font-size:12px; font-weight:600; font-family:inherit; cursor:pointer;
-            margin-top:2px; transition:border-color .2s,color .2s; }
-        .t-skip:hover { border-color:#333; color:var(--t1); }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workout Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Source+Code+Pro:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: ['Inter','system-ui','sans-serif'],
+        mono: ['"Source Code Pro"','monospace'],
+      },
+      colors: {
+        tan: '#EEEFE9',            // PostHog light bg
+        'tan-dark': '#E5E7E0',
+        ink: '#151515',            // primary text
+        smoke: '#D0D1C9',          // borders
+        gray2: '#8F8F8C',          // muted text
+        hblue: '#1D4AFF',          // PostHog blue
+        horange: '#F54E00',        // PostHog orange/red
+        hyellow: '#F9BD2B',        // PostHog yellow
+        hteal: '#29DBBB',
+        hpurple: '#B62AD9',
+        hgreen: '#6AA84F',
+      },
+      boxShadow: {
+        ph: '0 2px 0 0 #D0D1C9',
+        'ph-btn': '0 3px 0 0 rgba(0,0,0,.35)',
+      },
+    }
+  }
+}
+</script>
+<style>
+  * { -webkit-tap-highlight-color: transparent; }
+  body { background:#EEEFE9; }
+  .tab-trigger { border:1.5px solid transparent; }
+  .tab-trigger[data-state=active] { background:#fff; border-color:#D0D1C9; color:#151515; font-weight:800; box-shadow:0 2px 0 0 #D0D1C9; }
+  .cb { transition: background .15s, border-color .15s; }
+  .cb[data-state=checked] { background:#1D4AFF; border-color:#1D4AFF; }
+  .cb[data-state=checked] svg { opacity:1; }
+  .row[data-done=true] .ex-title { text-decoration:line-through; color:#8F8F8C; }
+  .row[data-done=true] { opacity:.6; }
+  .ph-btn { box-shadow:0 3px 0 0 rgba(0,0,0,.30); transition: transform .08s, box-shadow .08s; }
+  .ph-btn:active { transform:translateY(2px); box-shadow:0 1px 0 0 rgba(0,0,0,.30); }
+</style>
 </head>
-<body>
-<div class="app">
-  <div class="track" id="track">
+<body class="font-sans text-ink antialiased">
+<div class="mx-auto max-w-2xl px-4 py-8 md:py-12">
 
-    <!-- 0 Monday Push -->
-    <div class="slide" data-type="push" data-color="#FF6B35">
-      <div class="card-head">
-        <div class="head-top"><span class="day-label">Mon · Day 1</span><span class="today-pill">Today</span></div>
-        <div class="day-name">Monday</div>
-        <div class="head-bot">
-          <span class="badge b-push">Push</span>
-          <span class="day-stats" id="st0" data-base="~60 min">0 / 6 · ~60 min</span>
-        </div>
-        <div class="prog-wrap"><div class="prog-bar" id="pb0" style="background:var(--push)"></div></div>
-      </div>
-      <div class="sep"></div>
-      <div class="ex-list" id="el0">
-        <div class="aux"><span class="aux-tag">Warm-up</span><span class="aux-txt">5 min · arm circles, band pull-aparts, 2 ramp-up bench sets</span></div>
-        <div class="ex-row">
-          <button class="ex-cb" onclick="tap(this)"><span class="num">1</span><span class="ck"><svg viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
-          <div class="ex-info"><div class="ex-name">Barbell Bench Press</div><div class="ex-musc">Chest · Shoulders · Triceps</div></div>
-          <div class="ex-meta"><div class="ex-sets">4 × 4–6</div><button class="ex-rest" data-s="180" data-n="Bench Press" onclick="openTimer(this)"><svg viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.2"/><path d="M5 3v2.2l1.4.9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>3 min</button></div>
-        </div>
-        <div class="ex-row">
-          <button class="ex-cb" onclick="tap(this)"><span class="num">2</span><span class="ck"><svg viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
-          <div class="ex-info"><div class="ex-name">Overhead Press</div><div class="ex-musc">Shoulders · Triceps</div></div>
-          <div class="ex-meta"><div class="ex-sets">3 × 6–8</div><button class="ex-rest" data-s="120" data-n="Overhead Press" onclick="openTimer(this)"><svg viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.2"/><path d="M5 3v2.2l1.4.9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>2 min</button></div>
-        </div>
-        <div class="ex-row">
-          <button class="ex-cb" onclick="tap(this)"><span class="num">3</span><span class="ck"><svg viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
-          <div class="ex-info"><div class="ex-name">Incline DB Press</div><div class="ex-musc">Upper Chest · Front Delts</div></div>
-          <div class="ex-meta"><div class="ex-sets">3 × 10–12</div><button class="ex-rest" data-s="90" data-n="Incline DB Press" onclick="openTimer(this)"><svg viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.2"/><path d="M5 3v2.2l1.4.9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>90s</button></div>
-        </div>
-        <div class="ex-row">
-          <button class="ex-cb" onclick="tap(this)"><span class="num">4</span><span class="ck"><svg viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
-          <div class="ex-info"><div class="ex-name">Lateral Raises</div><div class="ex-musc">Medial Delts</div></div>
-          <div class="ex-meta"><div class="ex-sets">3 × 15–20</div><button class="ex-rest" data-s="60" data-n="Lateral Raises" onclick="openTimer(this)"><svg viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.2"/><path d="M5 3v2.2l1.4.9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>60s</button></div>
-        </div>
-        <div class="ex-row">
-          <button class="ex-cb" onclick="tap(this)"><span class="num">5</span><span class="ck"><svg viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
-          <div class="ex-info"><div class="ex-name">Tricep Pushdown</div><div class="ex-musc">Triceps</div></div>
-          <div class="ex-meta"><div class="ex-sets">3 × 12–15</div><button class="ex-rest" data-s="60" data-n="Tricep Pushdown" onclick="openTimer(this)"><svg viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.2"/><path d="M5 3v2.2l1.4.9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>60s</button></div>
-        </div>
-        <div class="ex-row">
-          <button class="ex-cb" onclick="tap(this)"><span class="num">6</span><span class="ck"><svg viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
-          <div class="ex-info"><div class="ex-name">Tricep Bench Dips</div><div class="ex-musc">Triceps · Finisher</div></div>
-          <div class="ex-meta"><div class="ex-sets">3 × 15–20</div><button class="ex-rest" data-s="60" data-n="Tricep Bench Dips" onclick="openTimer(this)"><svg viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.2"/><path d="M5 3v2.2l1.4.9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>60s</button></div>
-        </div>
-        <div class="aux aux-cd"><span class="aux-tag">Cool-down</span><span class="aux-txt">3 min · doorway pec stretch, overhead tricep stretch</span></div>
-        <div class="done-overlay" id="do0">
-          <div class="done-ring"><svg viewBox="0 0 72 72"><circle class="r-bg" cx="36" cy="36" r="30"/><circle class="r-fg" cx="36" cy="36" r="30" transform="rotate(-90 36 36)" style="stroke:var(--push)"/></svg><div class="done-ck"><svg viewBox="0 0 26 26" fill="none"><polyline points="4,13 11,20 22,7" stroke="#FF6B35" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
-          <div class="done-title">Workout Complete</div>
-          <div class="done-sub">6 exercises · 19 sets</div>
-          <button class="reset-btn" onclick="resetDay(0)">Reset</button>
-        </div>
-      </div>
+  <!-- Header -->
+  <div class="mb-6">
+    <p class="font-mono text-[11px] font-semibold uppercase tracking-[0.15em] text-horange">Body recomposition</p>
+    <div class="mt-1">
+      <h1 class="text-3xl font-black tracking-tight">Workout Plan</h1>
+      <p class="mt-1 text-sm font-medium text-gray2">4 lifts + 2 runs weekly · built different 🦔</p>
     </div>
-
-    <!-- 1 Tuesday Run -->
-    <div class="slide" data-type="run" data-color="#14B8A6">
-      <div class="card-head">
-        <div class="head-top"><span class="day-label">Tue · Day 2</span><span class="today-pill">Today</span></div>
-        <div class="day-name">Tuesday</div>
-        <div class="head-bot"><span class="badge b-run">Cardio</span></div>
-      </div>
-      <div class="sep"></div>
-      <div class="run-body">
-        <div class="run-aux"><span class="aux-tag">Warm-up</span><span class="aux-txt">5 min brisk walk · leg swings · ankle circles</span></div>
-        <div class="run-block"><div class="run-lbl">Duration</div><div class="run-val">30–40 min</div><div class="run-desc">Zone 2 at conversational pace. Optimal for fat oxidation while preserving muscle.</div></div>
-        <div class="run-block"><div class="run-lbl">Intensity</div><div class="run-val">Zone 2</div><div class="run-desc">~65% max HR. You should be able to hold a full sentence. If you can't, slow down.</div></div>
-        <div class="run-aux"><span class="aux-tag">Cool-down</span><span class="aux-txt">5 min walk · calf, hamstring + hip flexor stretches</span></div>
-      </div>
-    </div>
-
-    <!-- 2 Wednesday Pull + Core -->
-    <div class="slide" data-type="pull" data-color="#3B82F6">
-      <div class="card-head">
-        <div class="head-top"><span class="day-label">Wed · Day 3</span><span class="today-pill">Today</span></div>
-        <div class="day-name">Wednesday</div>
-        <div class="head-bot">
-          <span class="badge b-pull">Pull</span>
-          <span class="badge b-core">+ Core</span>
-          <span class="day-stats" id="st2" data-base="~65 min">0 / 8 · ~65 min</span>
-        </div>
-        <div class="prog-wrap"><div class="prog-bar" id="pb2" style="background:var(--pull)"></div></div>
-      </div>
-      <div class="sep"></div>
-      <div class="ex-list" id="el2">
-        <div class="aux"><span class="aux-tag">Warm-up</span><span class="aux-txt">5 min · dead hangs, scap pull-ups, light row ramp-ups</span></div>
-        <div class="ex-row">
-          <button class="ex-cb" onclick="tap(this)"><span class="num">1</span><span class="ck"><svg viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
-          <div class="ex-info"><div class="ex-name">Barbell Row</div><div class="ex-musc">Back Thickness · Biceps</div></div>
-          <div class="ex-meta"><div class="ex-sets">4 × 4–6</div><button class="ex-rest" data-s="180" data-n="Barbell Row" onclick="openTimer(this)"><svg viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.2"/><path d="M5 3v2.2l1.4.9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>3 min</button></div>
-        </div>
-        <div class="ex-row">
-          <button class="ex-cb" onclick="tap(this)"><span class="num">2</span><span class="ck"><svg viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
-          <div class="ex-info"><div class="ex-name">Weighted Pull-ups</div><div class="ex-musc">Lats · Biceps</div></div>
-          <div class="ex-meta"><div class="ex-sets">3 × 6–8</div><button class="ex-rest" data-s="120" data-n="Weighted Pull-ups" onclick="openTimer(this)"><svg viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.2"/><path d="M5 3v2.2l1.4.9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>2 min</button></div>
-        </div>
-        <div class="ex-row">
-          <button class="ex-cb" onclick="tap(this)"><span class="num">3</span><span class="ck"><svg viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
-          <div class="ex-info"><div class="ex-name">Cable Seated Row</div><div class="ex-musc">Mid Back · Rear Delts</div></div>
-          <div class="ex-meta"><div class="ex-sets">3 × 10–12</div><button class="ex-rest" data-s="90" data-n="Cable Seated Row" onclick="openTimer(this)"><svg viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.2"/><path d="M5 3v2.2l1.4.9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>90s</button></div>
-        </div>
-        <div class="ex-row">
-          <button class="ex-cb" onclick="tap(this)"><span class="num">4</span><span class="ck"><svg viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
-          <div class="ex-info"><div class="ex-name">Face Pulls</div><div class="ex-musc">Rear Delts · Posture</div></div>
-          <div class="ex-meta"><div class="ex-sets">3 × 15–20</div><button class="ex-rest" data-s="60" data-n="Face Pulls" onclick="openTimer(this)"><svg viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.2"/><path d="M5 3v2.2l1.4.9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>60s</button></div>
-        </div>
-        <div class="ex-row">
-          <button class="ex-cb" onclick="tap(this)"><span class="num">5</span><span class="ck"><svg viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
-          <div class="ex-info"><div class="ex-name">Barbell Curl</div><div class="ex-musc">Biceps</div></div>
-          <div class="ex-meta"><div class="ex-sets">3 × 10–12</div><button class="ex-rest" data-s="60" data-n="Barbell Curl" onclick="openTimer(this)"><svg viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.2"/><path d="M5 3v2.2l1.4.9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>60s</button></div>
-        </div>
-        <div class="ex-divider"><span>Core</span></div>
-        <div class="ex-row">
-          <button class="ex-cb" onclick="tap(this)"><span class="num">6</span><span class="ck"><svg viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
-          <div class="ex-info"><div class="ex-name">Dead Bug</div><div class="ex-musc">Transverse Abdominis · APT Fix</div></div>
-          <div class="ex-meta"><div class="ex-sets">3 × 8 /side</div><button class="ex-rest" data-s="45" data-n="Dead Bug" onclick="openTimer(this)"><svg viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.2"/><path d="M5 3v2.2l1.4.9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>45s</button></div>
-        </div>
-        <div class="ex-row">
-          <button class="ex-cb" onclick="tap(this)"><span class="num">7</span><span class="ck"><svg viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
-          <div class="ex-info"><div class="ex-name">Plank</div><div class="ex-musc">Anterior Core · Stability</div></div>
-          <div class="ex-meta"><div class="ex-sets">3 × 40 sec</div><button class="ex-rest" data-s="45" data-n="Plank" onclick="openTimer(this)"><svg viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.2"/><path d="M5 3v2.2l1.4.9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>45s</button></div>
-        </div>
-        <div class="ex-row">
-          <button class="ex-cb" onclick="tap(this)"><span class="num">8</span><span class="ck"><svg viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
-          <div class="ex-info"><div class="ex-name">Hanging Leg Raise</div><div class="ex-musc">Lower Abs</div></div>
-          <div class="ex-meta"><div class="ex-sets">3 × 12–15</div><button class="ex-rest" data-s="60" data-n="Hanging Leg Raise" onclick="openTimer(this)"><svg viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.2"/><path d="M5 3v2.2l1.4.9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>60s</button></div>
-        </div>
-        <div class="aux aux-cd"><span class="aux-tag">Cool-down</span><span class="aux-txt">3 min · lat stretch on rack, child's pose</span></div>
-        <div class="done-overlay" id="do2">
-          <div class="done-ring"><svg viewBox="0 0 72 72"><circle class="r-bg" cx="36" cy="36" r="30"/><circle class="r-fg" cx="36" cy="36" r="30" transform="rotate(-90 36 36)" style="stroke:var(--pull)"/></svg><div class="done-ck"><svg viewBox="0 0 26 26" fill="none"><polyline points="4,13 11,20 22,7" stroke="#3B82F6" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
-          <div class="done-title">Workout Complete</div>
-          <div class="done-sub">8 exercises · 25 sets</div>
-          <button class="reset-btn" onclick="resetDay(2)">Reset</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 3 Thursday Legs -->
-    <div class="slide" data-type="legs" data-color="#22C55E">
-      <div class="card-head">
-        <div class="head-top"><span class="day-label">Thu · Day 4</span><span class="today-pill">Today</span></div>
-        <div class="day-name">Thursday</div>
-        <div class="head-bot">
-          <span class="badge b-legs">Legs</span>
-          <span class="day-stats" id="st3" data-base="~55 min">0 / 6 · ~55 min</span>
-        </div>
-        <div class="prog-wrap"><div class="prog-bar" id="pb3" style="background:var(--legs)"></div></div>
-      </div>
-      <div class="sep"></div>
-      <div class="ex-list" id="el3">
-        <div class="aux"><span class="aux-tag">Warm-up</span><span class="aux-txt">8 min · easy bike, leg swings, 90/90 hips, 2 ramp-up squat sets</span></div>
-        <div class="ex-row">
-          <button class="ex-cb" onclick="tap(this)"><span class="num">1</span><span class="ck"><svg viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
-          <div class="ex-info"><div class="ex-name">Back Squat</div><div class="ex-musc">Quads · Glutes · Strength</div></div>
-          <div class="ex-meta"><div class="ex-sets">4 × 4–6</div><button class="ex-rest" data-s="210" data-n="Back Squat" onclick="openTimer(this)"><svg viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.2"/><path d="M5 3v2.2l1.4.9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>3–4 min</button></div>
-        </div>
-        <div class="ex-row">
-          <button class="ex-cb" onclick="tap(this)"><span class="num">2</span><span class="ck"><svg viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
-          <div class="ex-info"><div class="ex-name">Romanian Deadlift</div><div class="ex-musc">Hamstrings · Glutes</div></div>
-          <div class="ex-meta"><div class="ex-sets">3 × 8–10</div><button class="ex-rest" data-s="120" data-n="Romanian Deadlift" onclick="openTimer(this)"><svg viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.2"/><path d="M5 3v2.2l1.4.9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>2 min</button></div>
-        </div>
-        <div class="ex-row">
-          <button class="ex-cb" onclick="tap(this)"><span class="num">3</span><span class="ck"><svg viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
-          <div class="ex-info"><div class="ex-name">Bulgarian Split Squat</div><div class="ex-musc">Quads · Glutes · Unilateral</div></div>
-          <div class="ex-meta"><div class="ex-sets">3 × 10–12</div><button class="ex-rest" data-s="90" data-n="Bulgarian Split Squat" onclick="openTimer(this)"><svg viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.2"/><path d="M5 3v2.2l1.4.9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>90s</button></div>
-        </div>
-        <div class="ex-row">
-          <button class="ex-cb" onclick="tap(this)"><span class="num">4</span><span class="ck"><svg viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
-          <div class="ex-info"><div class="ex-name">Hip Thrust</div><div class="ex-musc">Glutes · Posture</div></div>
-          <div class="ex-meta"><div class="ex-sets">3 × 12–15</div><button class="ex-rest" data-s="90" data-n="Hip Thrust" onclick="openTimer(this)"><svg viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.2"/><path d="M5 3v2.2l1.4.9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>90s</button></div>
-        </div>
-        <div class="ex-row">
-          <button class="ex-cb" onclick="tap(this)"><span class="num">5</span><span class="ck"><svg viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
-          <div class="ex-info"><div class="ex-name">Seated Leg Curl</div><div class="ex-musc">Hamstrings</div></div>
-          <div class="ex-meta"><div class="ex-sets">3 × 12–15</div><button class="ex-rest" data-s="60" data-n="Seated Leg Curl" onclick="openTimer(this)"><svg viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.2"/><path d="M5 3v2.2l1.4.9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>60s</button></div>
-        </div>
-        <div class="ex-row">
-          <button class="ex-cb" onclick="tap(this)"><span class="num">6</span><span class="ck"><svg viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
-          <div class="ex-info"><div class="ex-name">Standing Calf Raise</div><div class="ex-musc">Calves</div></div>
-          <div class="ex-meta"><div class="ex-sets">4 × 15–20</div><button class="ex-rest" data-s="60" data-n="Standing Calf Raise" onclick="openTimer(this)"><svg viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.2"/><path d="M5 3v2.2l1.4.9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>60s</button></div>
-        </div>
-        <div class="aux aux-cd"><span class="aux-tag">Cool-down</span><span class="aux-txt">5 min · couch stretch, pigeon, standing hamstring stretch</span></div>
-        <div class="done-overlay" id="do3">
-          <div class="done-ring"><svg viewBox="0 0 72 72"><circle class="r-bg" cx="36" cy="36" r="30"/><circle class="r-fg" cx="36" cy="36" r="30" transform="rotate(-90 36 36)" style="stroke:var(--legs)"/></svg><div class="done-ck"><svg viewBox="0 0 26 26" fill="none"><polyline points="4,13 11,20 22,7" stroke="#22C55E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
-          <div class="done-title">Workout Complete</div>
-          <div class="done-sub">6 exercises · 20 sets</div>
-          <button class="reset-btn" onclick="resetDay(3)">Reset</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 4 Friday Upper + Core -->
-    <div class="slide" data-type="upper" data-color="#A855F7">
-      <div class="card-head">
-        <div class="head-top"><span class="day-label">Fri · Day 5</span><span class="today-pill">Today</span></div>
-        <div class="day-name">Friday</div>
-        <div class="head-bot">
-          <span class="badge b-upper">Upper</span>
-          <span class="badge b-core">+ Core</span>
-          <span class="day-stats" id="st4" data-base="~55 min">0 / 10 · ~55 min</span>
-        </div>
-        <div class="prog-wrap"><div class="prog-bar" id="pb4" style="background:var(--upper)"></div></div>
-      </div>
-      <div class="sep"></div>
-      <div class="ex-list" id="el4">
-        <div class="aux"><span class="aux-tag">Warm-up</span><span class="aux-txt">5 min · arm circles, scap push-ups, light first set of each pair</span></div>
-        <!-- Superset A -->
-        <div class="ex-row">
-          <button class="ex-cb" onclick="tap(this)"><span class="num">1</span><span class="ck"><svg viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
-          <div class="ex-info"><div class="ex-name">Cable Fly</div><div class="ex-musc">Chest · <span class="ss">SS-A</span></div></div>
-          <div class="ex-meta"><div class="ex-sets">3 × 12–15</div><div class="ss-hint">↓ then A2</div></div>
-        </div>
-        <div class="ex-row">
-          <button class="ex-cb" onclick="tap(this)"><span class="num">2</span><span class="ck"><svg viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
-          <div class="ex-info"><div class="ex-name">Lat Pulldown</div><div class="ex-musc">Lats · Biceps · <span class="ss">SS-A</span></div></div>
-          <div class="ex-meta"><div class="ex-sets">3 × 10–12</div><button class="ex-rest" data-s="90" data-n="Lat Pulldown" onclick="openTimer(this)"><svg viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.2"/><path d="M5 3v2.2l1.4.9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>90s</button></div>
-        </div>
-        <!-- Superset B -->
-        <div class="ex-row">
-          <button class="ex-cb" onclick="tap(this)"><span class="num">3</span><span class="ck"><svg viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
-          <div class="ex-info"><div class="ex-name">DB Shoulder Press</div><div class="ex-musc">Shoulders · <span class="ss">SS-B</span></div></div>
-          <div class="ex-meta"><div class="ex-sets">3 × 10–12</div><div class="ss-hint">↓ then B2</div></div>
-        </div>
-        <div class="ex-row">
-          <button class="ex-cb" onclick="tap(this)"><span class="num">4</span><span class="ck"><svg viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
-          <div class="ex-info"><div class="ex-name">Cable Row</div><div class="ex-musc">Mid Back · Biceps · <span class="ss">SS-B</span></div></div>
-          <div class="ex-meta"><div class="ex-sets">3 × 12–15</div><button class="ex-rest" data-s="90" data-n="Cable Row" onclick="openTimer(this)"><svg viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.2"/><path d="M5 3v2.2l1.4.9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>90s</button></div>
-        </div>
-        <!-- Superset C -->
-        <div class="ex-row">
-          <button class="ex-cb" onclick="tap(this)"><span class="num">5</span><span class="ck"><svg viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
-          <div class="ex-info"><div class="ex-name">DB Curl</div><div class="ex-musc">Biceps · <span class="ss">SS-C</span></div></div>
-          <div class="ex-meta"><div class="ex-sets">3 × 12–15</div><div class="ss-hint">↓ then C2</div></div>
-        </div>
-        <div class="ex-row">
-          <button class="ex-cb" onclick="tap(this)"><span class="num">6</span><span class="ck"><svg viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
-          <div class="ex-info"><div class="ex-name">Tricep Overhead Ext</div><div class="ex-musc">Triceps · <span class="ss">SS-C</span></div></div>
-          <div class="ex-meta"><div class="ex-sets">3 × 12–15</div><button class="ex-rest" data-s="60" data-n="Tricep Overhead Ext" onclick="openTimer(this)"><svg viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.2"/><path d="M5 3v2.2l1.4.9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>60s</button></div>
-        </div>
-        <!-- Solo -->
-        <div class="ex-row">
-          <button class="ex-cb" onclick="tap(this)"><span class="num">7</span><span class="ck"><svg viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
-          <div class="ex-info"><div class="ex-name">Lateral Raises</div><div class="ex-musc">Medial Delts</div></div>
-          <div class="ex-meta"><div class="ex-sets">3 × 15–20</div><button class="ex-rest" data-s="60" data-n="Lateral Raises" onclick="openTimer(this)"><svg viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.2"/><path d="M5 3v2.2l1.4.9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>60s</button></div>
-        </div>
-        <div class="ex-divider"><span>Core</span></div>
-        <div class="ex-row">
-          <button class="ex-cb" onclick="tap(this)"><span class="num">8</span><span class="ck"><svg viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
-          <div class="ex-info"><div class="ex-name">Cable Crunch</div><div class="ex-musc">Abs · Hypertrophy</div></div>
-          <div class="ex-meta"><div class="ex-sets">3 × 15–20</div><button class="ex-rest" data-s="45" data-n="Cable Crunch" onclick="openTimer(this)"><svg viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.2"/><path d="M5 3v2.2l1.4.9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>45s</button></div>
-        </div>
-        <div class="ex-row">
-          <button class="ex-cb" onclick="tap(this)"><span class="num">9</span><span class="ck"><svg viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
-          <div class="ex-info"><div class="ex-name">Ab Wheel Rollout</div><div class="ex-musc">Anti-Extension · Total Core</div></div>
-          <div class="ex-meta"><div class="ex-sets">3 × 8–10</div><button class="ex-rest" data-s="60" data-n="Ab Wheel Rollout" onclick="openTimer(this)"><svg viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.2"/><path d="M5 3v2.2l1.4.9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>60s</button></div>
-        </div>
-        <div class="ex-row">
-          <button class="ex-cb" onclick="tap(this)"><span class="num">10</span><span class="ck"><svg viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
-          <div class="ex-info"><div class="ex-name">Hollow Hold</div><div class="ex-musc">Lower Abs · APT Fix</div></div>
-          <div class="ex-meta"><div class="ex-sets">3 × 25–30s</div><button class="ex-rest" data-s="45" data-n="Hollow Hold" onclick="openTimer(this)"><svg viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.2"/><path d="M5 3v2.2l1.4.9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>45s</button></div>
-        </div>
-        <div class="aux aux-cd"><span class="aux-tag">Cool-down</span><span class="aux-txt">3 min · pec, lat + cross-body shoulder stretch</span></div>
-        <div class="done-overlay" id="do4">
-          <div class="done-ring"><svg viewBox="0 0 72 72"><circle class="r-bg" cx="36" cy="36" r="30"/><circle class="r-fg" cx="36" cy="36" r="30" transform="rotate(-90 36 36)" style="stroke:var(--upper)"/></svg><div class="done-ck"><svg viewBox="0 0 26 26" fill="none"><polyline points="4,13 11,20 22,7" stroke="#A855F7" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
-          <div class="done-title">Workout Complete</div>
-          <div class="done-sub">10 exercises · 30 sets</div>
-          <button class="reset-btn" onclick="resetDay(4)">Reset</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 5 Saturday Run -->
-    <div class="slide" data-type="run" data-color="#14B8A6">
-      <div class="card-head">
-        <div class="head-top"><span class="day-label">Sat · Day 6</span><span class="today-pill">Today</span></div>
-        <div class="day-name">Saturday</div>
-        <div class="head-bot"><span class="badge b-run">Cardio</span></div>
-      </div>
-      <div class="sep"></div>
-      <div class="run-body">
-        <div class="run-aux"><span class="aux-tag">Warm-up</span><span class="aux-txt">5 min easy jog · leg swings · high knees, A-skips</span></div>
-        <div class="run-block"><div class="run-lbl">Duration</div><div class="run-val">20–30 min</div><div class="run-desc">Intervals if legs feel fresh. Easy jog if still sore from Thursday.</div></div>
-        <div class="run-block"><div class="run-lbl">Intervals (if fresh)</div><div class="run-val">6–8 rounds</div><div class="run-desc">1 min hard / 2 min easy. Keep Zone 2 if Thursday soreness lingers.</div></div>
-        <div class="run-aux"><span class="aux-tag">Cool-down</span><span class="aux-txt">5 min walk · calf, quad + hip flexor stretches</span></div>
-      </div>
-    </div>
-
-    <!-- 6 Sunday Rest -->
-    <div class="slide" data-type="rest" data-color="#6B7280">
-      <div class="card-head">
-        <div class="head-top"><span class="day-label">Sun · Day 7</span><span class="today-pill">Today</span></div>
-        <div class="day-name">Sunday</div>
-        <div class="head-bot"><span class="badge b-rest">Rest</span></div>
-      </div>
-      <div class="sep"></div>
-      <div class="rest-wrap">
-        <div class="rest-orb"></div>
-        <div class="rest-ttl">Recovery Day</div>
-        <div class="rest-desc">This is where the gains happen.<br>Sleep 7–9 hours. Stay hydrated.<br>Light walking is fine.</div>
-      </div>
-    </div>
-
   </div>
-  <div class="nav" id="nav"></div>
+
+  <!-- Tabs -->
+  <div class="flex w-full items-center gap-1 rounded-lg border-[1.5px] border-smoke bg-tan-dark p-1" role="tablist" id="tabs">
+    <button class="tab-trigger flex-1 rounded-md px-1 py-1.5 text-xs font-semibold text-gray2 sm:text-sm" data-day="0">Mon</button>
+    <button class="tab-trigger flex-1 rounded-md px-1 py-1.5 text-xs font-semibold text-gray2 sm:text-sm" data-day="1">Tue</button>
+    <button class="tab-trigger flex-1 rounded-md px-1 py-1.5 text-xs font-semibold text-gray2 sm:text-sm" data-day="2">Wed</button>
+    <button class="tab-trigger flex-1 rounded-md px-1 py-1.5 text-xs font-semibold text-gray2 sm:text-sm" data-day="3">Thu</button>
+    <button class="tab-trigger flex-1 rounded-md px-1 py-1.5 text-xs font-semibold text-gray2 sm:text-sm" data-day="4">Fri</button>
+    <button class="tab-trigger flex-1 rounded-md px-1 py-1.5 text-xs font-semibold text-gray2 sm:text-sm" data-day="5">Sat</button>
+    <button class="tab-trigger flex-1 rounded-md px-1 py-1.5 text-xs font-semibold text-gray2 sm:text-sm" data-day="6">Sun</button>
+  </div>
+
+  <div id="panel" class="mt-5"></div>
+
 </div>
 
-<!-- Rest Timer -->
-<div class="t-ov" id="tov">
-  <div class="t-back" onclick="closeTimer()"></div>
-  <div class="t-card">
-    <div class="t-ex" id="tex"></div>
-    <div class="t-ring">
-      <svg viewBox="0 0 152 152"><circle class="t-rbg" cx="76" cy="76" r="64"/><circle class="t-rfg" id="tfg" cx="76" cy="76" r="64" transform="rotate(-90 76 76)"/></svg>
-      <div class="t-txt"><div class="t-cnt" id="tct">0:00</div><div class="t-sub" id="tsb">rest</div></div>
+<!-- Rest timer dialog -->
+<div id="tdlg" class="pointer-events-none fixed inset-0 z-50 flex items-center justify-center opacity-0 transition-opacity duration-200">
+  <div class="absolute inset-0 bg-ink/70" onclick="closeTimer()"></div>
+  <div class="relative mx-4 w-full max-w-xs rounded-lg border-[1.5px] border-ink bg-tan p-6 shadow-ph-btn">
+    <p id="tname" class="text-center font-mono text-xs font-semibold uppercase tracking-[0.12em] text-gray2"></p>
+    <div class="relative mx-auto mt-4 h-36 w-36">
+      <svg class="h-36 w-36" viewBox="0 0 144 144">
+        <circle cx="72" cy="72" r="62" fill="none" stroke="#D0D1C9" stroke-width="7"/>
+        <circle id="tring" cx="72" cy="72" r="62" fill="none" stroke="#1D4AFF" stroke-width="7" stroke-linecap="round" transform="rotate(-90 72 72)"/>
+      </svg>
+      <div class="absolute inset-0 flex flex-col items-center justify-center">
+        <span id="tcount" class="text-3xl font-black tabular-nums tracking-tight">0:00</span>
+        <span id="tsub" class="mt-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-gray2">rest</span>
+      </div>
     </div>
-    <div class="t-hint" id="thi">Tap to dismiss</div>
-    <button class="t-skip" onclick="closeTimer()">Skip Rest</button>
+    <button class="ph-btn mt-5 inline-flex h-10 w-full items-center justify-center rounded-md border-[1.5px] border-ink bg-horange text-sm font-extrabold text-white hover:brightness-105" onclick="closeTimer()">Skip rest</button>
   </div>
 </div>
 
 <script>
-const track = document.getElementById('track');
-const navEl  = document.getElementById('nav');
-const TOTAL  = 7;
-let cur = 0;
+const PLAN = [
+  {
+    day: 'Monday', type: 'Push', color: 'horange', time: '~60 min',
+    wu: '5 min · arm circles, band pull-aparts, 2 ramp-up bench sets',
+    cd: '3 min · doorway pec stretch, overhead tricep stretch',
+    sections: [{ label: null, ex: [
+      { n: 'Barbell Bench Press', m: 'Chest · Shoulders · Triceps', s: '4 × 4–6', r: '3 min', rs: 180 },
+      { n: 'Overhead Press', m: 'Shoulders · Triceps', s: '3 × 6–8', r: '2 min', rs: 120 },
+      { n: 'Incline DB Press', m: 'Upper chest · Front delts', s: '3 × 10–12', r: '90s', rs: 90 },
+      { n: 'Lateral Raises', m: 'Medial delts', s: '3 × 15–20', r: '60s', rs: 60 },
+      { n: 'Tricep Pushdown', m: 'Triceps', s: '3 × 12–15', r: '60s', rs: 60 },
+      { n: 'Tricep Bench Dips', m: 'Triceps · Finisher', s: '3 × 15–20', r: '60s', rs: 60 },
+    ]}]
+  },
+  {
+    day: 'Tuesday', type: 'Cardio', color: 'hteal', time: '30–40 min',
+    wu: '5 min brisk walk · leg swings · ankle circles',
+    cd: '5 min walk · calf, hamstring + hip flexor stretches',
+    run: { title: 'Zone 2 Run', desc: '30–40 minutes at conversational pace (~65% max HR). You should be able to hold a full sentence — if you can\'t, slow down. Optimal for fat oxidation while preserving muscle.' }
+  },
+  {
+    day: 'Wednesday', type: 'Pull + Core', color: 'hblue', time: '~65 min',
+    wu: '5 min · dead hangs, scap pull-ups, light row ramp-ups',
+    cd: '3 min · lat stretch on rack, child\'s pose',
+    sections: [
+      { label: null, ex: [
+        { n: 'Barbell Row', m: 'Back thickness · Biceps', s: '4 × 4–6', r: '3 min', rs: 180 },
+        { n: 'Weighted Pull-ups', m: 'Lats · Biceps', s: '3 × 6–8', r: '2 min', rs: 120 },
+        { n: 'Cable Seated Row', m: 'Mid back · Rear delts', s: '3 × 10–12', r: '90s', rs: 90 },
+        { n: 'Face Pulls', m: 'Rear delts · Posture', s: '3 × 15–20', r: '60s', rs: 60 },
+        { n: 'Barbell Curl', m: 'Biceps', s: '3 × 10–12', r: '60s', rs: 60 },
+      ]},
+      { label: 'Core', ex: [
+        { n: 'Dead Bug', m: 'Transverse abdominis · APT fix', s: '3 × 8 /side', r: '45s', rs: 45 },
+        { n: 'Plank', m: 'Anterior core · Stability', s: '3 × 40 sec', r: '45s', rs: 45 },
+        { n: 'Hanging Leg Raise', m: 'Lower abs', s: '3 × 12–15', r: '60s', rs: 60 },
+      ]}
+    ]
+  },
+  {
+    day: 'Thursday', type: 'Legs', color: 'hgreen', time: '~55 min',
+    wu: '8 min · easy bike, leg swings, 90/90 hips, 2 ramp-up squat sets',
+    cd: '5 min · couch stretch, pigeon, standing hamstring stretch',
+    sections: [{ label: null, ex: [
+      { n: 'Back Squat', m: 'Quads · Glutes · Strength', s: '4 × 4–6', r: '3–4 min', rs: 210 },
+      { n: 'Romanian Deadlift', m: 'Hamstrings · Glutes', s: '3 × 8–10', r: '2 min', rs: 120 },
+      { n: 'Bulgarian Split Squat', m: 'Quads · Glutes · Unilateral', s: '3 × 10–12', r: '90s', rs: 90 },
+      { n: 'Hip Thrust', m: 'Glutes · Posture', s: '3 × 12–15', r: '90s', rs: 90 },
+      { n: 'Seated Leg Curl', m: 'Hamstrings', s: '3 × 12–15', r: '60s', rs: 60 },
+      { n: 'Standing Calf Raise', m: 'Calves', s: '4 × 15–20', r: '60s', rs: 60 },
+    ]}]
+  },
+  {
+    day: 'Friday', type: 'Upper + Core', color: 'hpurple', time: '~55 min',
+    wu: '5 min · arm circles, scap push-ups, light first set of each pair',
+    cd: '3 min · pec, lat + cross-body shoulder stretch',
+    sections: [
+      { label: null, ex: [
+        { n: 'Cable Fly', m: 'Chest', s: '3 × 12–15', r: null, ss: 'A1' },
+        { n: 'Lat Pulldown', m: 'Lats · Biceps', s: '3 × 10–12', r: '90s', rs: 90, ss: 'A2' },
+        { n: 'DB Shoulder Press', m: 'Shoulders', s: '3 × 10–12', r: null, ss: 'B1' },
+        { n: 'Cable Row', m: 'Mid back · Biceps', s: '3 × 12–15', r: '90s', rs: 90, ss: 'B2' },
+        { n: 'DB Curl', m: 'Biceps', s: '3 × 12–15', r: null, ss: 'C1' },
+        { n: 'Tricep Overhead Ext', m: 'Triceps', s: '3 × 12–15', r: '60s', rs: 60, ss: 'C2' },
+        { n: 'Lateral Raises', m: 'Medial delts', s: '3 × 15–20', r: '60s', rs: 60 },
+      ]},
+      { label: 'Core', ex: [
+        { n: 'Cable Crunch', m: 'Abs · Hypertrophy', s: '3 × 15–20', r: '45s', rs: 45 },
+        { n: 'Ab Wheel Rollout', m: 'Anti-extension · Total core', s: '3 × 8–10', r: '60s', rs: 60 },
+        { n: 'Hollow Hold', m: 'Lower abs · APT fix', s: '3 × 25–30s', r: '45s', rs: 45 },
+      ]}
+    ]
+  },
+  {
+    day: 'Saturday', type: 'Cardio', color: 'hteal', time: '20–30 min',
+    wu: '5 min easy jog · leg swings · high knees, A-skips',
+    cd: '5 min walk · calf, quad + hip flexor stretches',
+    run: { title: 'Intervals or Easy Jog', desc: '6–8 rounds of 1 min hard / 2 min easy if legs feel fresh. Keep it an easy Zone 2 jog if Thursday soreness lingers.' }
+  },
+  {
+    day: 'Sunday', type: 'Rest', color: 'gray2', time: null,
+    run: { title: 'Recovery Day', desc: 'This is where the gains happen. Sleep 7–9 hours, stay hydrated. Light walking is fine.' }
+  },
+];
 
+const BADGE = {
+  horange: 'bg-horange/10 text-horange border-horange/30',
+  hblue:   'bg-hblue/10 text-hblue border-hblue/30',
+  hgreen:  'bg-hgreen/15 text-hgreen border-hgreen/40',
+  hpurple: 'bg-hpurple/10 text-hpurple border-hpurple/30',
+  hteal:   'bg-hteal/15 text-teal-700 border-hteal/50',
+  gray2:   'bg-tan-dark text-gray2 border-smoke',
+};
+const BAR = {
+  horange: '#F54E00', hblue: '#1D4AFF', hgreen: '#6AA84F',
+  hpurple: '#B62AD9', hteal: '#29DBBB', gray2: '#8F8F8C',
+};
+
+const done = PLAN.map(d => d.sections ? d.sections.flatMap(s => s.ex).map(() => false) : []);
 const TODAY = [6,0,1,2,3,4,5][new Date().getDay()];
+let cur = TODAY;
 
-document.querySelectorAll('.slide').forEach((sl, i) => {
-    const color = sl.dataset.color || '#fff';
-    sl.style.setProperty('--accent', color);
-    if (i === TODAY) {
-        const pill = sl.querySelector('.today-pill');
-        if (pill) { pill.style.display = 'inline-flex'; pill.style.background = color; }
-    }
-});
+const CHECK = `<svg class="opacity-0 transition-opacity" width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="white" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
-for (let i = 0; i < TOTAL; i++) {
-    const d = document.createElement('div');
-    d.className = 'dot';
-    d.onclick = () => goTo(i);
-    navEl.appendChild(d);
+function render() {
+  const d = PLAN[cur];
+  const isToday = cur === TODAY;
+  let inner = '';
+
+  const auxEl = (tag, txt, cls) => txt ? `
+    <div class="flex items-baseline gap-2 rounded-md border-[1.5px] border-smoke bg-tan px-3 py-2 ${cls || ''}">
+      <span class="shrink-0 font-mono text-[9px] font-bold uppercase tracking-[0.15em] ${tag === 'Warm-up' ? 'text-horange' : 'text-hblue'}">${tag}</span>
+      <span class="truncate text-xs font-medium text-gray2">${txt}</span>
+    </div>` : '';
+
+  const headEl = `
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <h2 class="text-xl font-black tracking-tight">${d.day}</h2>
+        ${isToday ? '<span class="rounded border-[1.5px] border-ink bg-hyellow px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide text-ink">Today</span>' : ''}
+      </div>
+      <span class="rounded-md border-[1.5px] ${BADGE[d.color]} px-2.5 py-0.5 text-xs font-bold">${d.type}</span>
+    </div>`;
+
+  if (d.sections) {
+    const flat = d.sections.flatMap(s => s.ex);
+    const total = flat.length;
+    const checked = done[cur].filter(Boolean).length;
+    const pct = Math.round((checked / total) * 100);
+
+    let idx = 0;
+    const sectionsHtml = d.sections.map(sec => {
+      const rows = sec.ex.map(ex => {
+        const i = idx++;
+        const isDone = done[cur][i];
+        return `
+        <div class="row flex items-center gap-3 py-3" data-done="${isDone}">
+          <button class="cb flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded border-[1.5px] border-ink bg-white" data-state="${isDone ? 'checked' : 'unchecked'}" onclick="toggle(${i})" aria-label="Mark ${ex.n} done">${CHECK}</button>
+          <div class="min-w-0 flex-1">
+            <p class="ex-title truncate text-sm font-bold leading-tight">${ex.n}${ex.ss ? ` <span class="ml-1 rounded border border-smoke bg-tan px-1 py-px font-mono text-[9px] font-bold text-gray2">${ex.ss}</span>` : ''}</p>
+            <p class="mt-0.5 truncate text-xs font-medium text-gray2">${ex.m}</p>
+          </div>
+          <div class="shrink-0 text-right">
+            <p class="font-mono text-[13px] font-bold tabular-nums">${ex.s}</p>
+            ${ex.r
+              ? `<button class="mt-0.5 inline-flex items-center gap-1 font-mono text-[11px] font-semibold text-hblue underline decoration-dotted underline-offset-2 hover:text-horange" onclick="openTimer(${ex.rs}, '${ex.n.replace(/'/g, "\\'")}')">
+                   <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.3"/><path d="M5 3v2.2l1.4.9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>${ex.r}
+                 </button>`
+              : '<p class="mt-0.5 font-mono text-[11px] font-semibold text-horange">no rest →</p>'}
+          </div>
+        </div>`;
+      }).join('<div class="h-px bg-smoke/70"></div>');
+
+      const divider = sec.label ? `
+        <div class="flex items-center gap-3 pt-4 pb-1">
+          <div class="h-px flex-1 bg-smoke"></div>
+          <span class="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-gray2">${sec.label}</span>
+          <div class="h-px flex-1 bg-smoke"></div>
+        </div>` : '';
+      return divider + rows;
+    }).join('');
+
+    inner = `
+      ${headEl}
+      <p class="mt-1.5 font-mono text-xs font-semibold text-gray2">${checked}/${total} exercises · ${d.time}</p>
+      <div class="mt-3 h-3 w-full overflow-hidden rounded border-[1.5px] border-ink bg-white">
+        <div class="h-full transition-all duration-300" style="width:${pct}%;background:${BAR[d.color]}"></div>
+      </div>
+      ${auxEl('Warm-up', d.wu, 'mt-3')}
+      <div class="mt-1">${sectionsHtml}</div>
+      ${auxEl('Cool-down', d.cd, 'mt-1')}
+      ${checked === total ? `
+        <div class="mt-4 flex items-center justify-between rounded-md border-[1.5px] border-ink bg-hyellow px-4 py-3">
+          <p class="text-sm font-extrabold">Workout complete 🦔</p>
+          <button class="ph-btn inline-flex h-8 items-center rounded border-[1.5px] border-ink bg-white px-3 text-xs font-bold hover:bg-tan" onclick="resetDay()">Reset</button>
+        </div>` : ''}`;
+  } else {
+    inner = `
+      ${headEl}
+      ${auxEl('Warm-up', d.wu, 'mt-5')}
+      <div class="mt-2 rounded-md border-[1.5px] border-smoke bg-tan p-5">
+        <h3 class="text-sm font-extrabold">${d.run.title}</h3>
+        <p class="mt-2 text-sm font-medium leading-relaxed text-gray2">${d.run.desc}</p>
+        ${d.time ? `<p class="mt-3 font-mono text-[11px] font-bold uppercase tracking-wide text-gray2">Duration: ${d.time}</p>` : ''}
+      </div>
+      ${auxEl('Cool-down', d.cd, 'mt-2')}`;
+  }
+
+  document.getElementById('panel').innerHTML = `
+    <div class="rounded-lg border-[1.5px] border-smoke bg-white p-5 shadow-ph sm:p-6">${inner}</div>`;
+
+  document.querySelectorAll('.tab-trigger').forEach((t, i) =>
+    t.setAttribute('data-state', i === cur ? 'active' : 'inactive'));
 }
 
-function goTo(i, anim = true) {
-    cur = Math.max(0, Math.min(TOTAL - 1, i));
-    if (!anim) track.classList.add('instant');
-    track.style.transform = `translateX(${-cur * 100}vw)`;
-    if (!anim) requestAnimationFrame(() => track.classList.remove('instant'));
-    document.querySelectorAll('.dot').forEach((d, j) => d.classList.toggle('on', j === cur));
+function toggle(i) {
+  done[cur][i] = !done[cur][i];
+  if (done[cur][i] && navigator.vibrate) navigator.vibrate(22);
+  render();
 }
-goTo(TODAY, false);
+function resetDay() { done[cur] = done[cur].map(() => false); render(); }
 
-let sx = 0, sy = 0, st = 0, drag = false, isHoriz = null;
-function dragStart(x, y) { sx = x; sy = y; st = Date.now(); drag = true; isHoriz = null; track.classList.add('instant'); }
-function dragMove(e, x, y) {
-    if (!drag) return;
-    const dx = x - sx, dy = y - sy;
-    if (isHoriz === null && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) {
-        isHoriz = Math.abs(dx) > Math.abs(dy);
-    }
-    if (!isHoriz) return;
-    if (e && e.cancelable) e.preventDefault();
-    track.style.transform = `translateX(calc(${-cur*100}vw + ${dx}px))`;
-}
-function dragEnd(x) {
-    if (!drag) return; drag = false; track.classList.remove('instant');
-    if (!isHoriz) return;
-    const dx = x - sx, vel = Math.abs(dx) / Math.max(1, Date.now() - st);
-    const thr = vel > 0.35 ? 20 : window.innerWidth * 0.22;
-    if (dx < -thr && cur < TOTAL-1) goTo(cur+1);
-    else if (dx > thr && cur > 0) goTo(cur-1);
-    else goTo(cur);
-}
-track.addEventListener('touchstart', e => dragStart(e.touches[0].clientX, e.touches[0].clientY), {passive:true});
-track.addEventListener('touchmove',  e => dragMove(e, e.touches[0].clientX, e.touches[0].clientY), {passive:false});
-track.addEventListener('touchend',   e => dragEnd(e.changedTouches[0].clientX));
-track.addEventListener('mousedown',  e => { if (e.button === 0) dragStart(e.clientX, e.clientY); });
-document.addEventListener('mousemove', e => dragMove(null, e.clientX, e.clientY));
-document.addEventListener('mouseup',   e => dragEnd(e.clientX));
-document.addEventListener('keydown', e => {
-    if (e.key === 'ArrowRight') goTo(cur+1);
-    if (e.key === 'ArrowLeft')  goTo(cur-1);
-});
+document.querySelectorAll('.tab-trigger').forEach(t =>
+  t.addEventListener('click', () => { cur = +t.dataset.day; render(); }));
 
-function tap(btn) {
-    const on = btn.classList.toggle('on');
-    btn.closest('.ex-row').classList.toggle('done', on);
-    if (on && navigator.vibrate) navigator.vibrate(22);
-    syncProgress(btn.closest('.ex-list'));
-}
+render();
 
-function syncProgress(list) {
-    if (!list) return;
-    const rows  = list.querySelectorAll('.ex-row');
-    const done  = list.querySelectorAll('.ex-cb.on').length;
-    const total = rows.length;
-    const head  = list.closest('.slide').querySelector('.card-head');
-    const pb    = head && head.querySelector('.prog-bar');
-    const st    = head && head.querySelector('.day-stats');
-    if (pb) pb.style.width = `${(done/total)*100}%`;
-    if (st) {
-        const base = st.dataset.base || '';
-        st.textContent = `${done} / ${total}${base ? ' · ' + base : ''}`;
-    }
-    if (done === total) setTimeout(() => showDone(list), 380);
-}
-
-function showDone(list) {
-    const ov = list.querySelector('.done-overlay');
-    if (!ov) return;
-    ov.classList.add('show');
-    beep(523,.15,.18);
-    setTimeout(() => beep(659,.12,.18), 160);
-    setTimeout(() => beep(784,.1,.28), 310);
-    if (navigator.vibrate) navigator.vibrate([80,50,120]);
-}
-
-function resetDay(idx) {
-    const el = document.getElementById(`el${idx}`);
-    if (!el) return;
-    el.querySelectorAll('.ex-cb.on').forEach(b => {
-        b.classList.remove('on');
-        b.closest('.ex-row').classList.remove('done');
-    });
-    const ov = document.getElementById(`do${idx}`);
-    if (ov) ov.classList.remove('show');
-    syncProgress(el);
-}
-
-const C = 2 * Math.PI * 64;
+// ---- Rest timer ----
+const TC = 2 * Math.PI * 62;
+const tdlg = document.getElementById('tdlg');
+const tring = document.getElementById('tring');
+const tcount = document.getElementById('tcount');
+const tsub = document.getElementById('tsub');
+const tname = document.getElementById('tname');
+tring.style.strokeDasharray = TC;
 let tiv = null, tRem = 0, tTot = 0;
-const tov = document.getElementById('tov');
-const tfg = document.getElementById('tfg');
-const tct = document.getElementById('tct');
-const tsb = document.getElementById('tsb');
-const tex = document.getElementById('tex');
-const thi = document.getElementById('thi');
-tfg.style.strokeDasharray = C;
-tfg.style.strokeDashoffset = C;
 
-function openTimer(btn) {
-    clearInterval(tiv);
-    tTot = tRem = parseInt(btn.dataset.s);
-    const color = btn.closest('.slide')?.dataset.color || '#22C55E';
-    tfg.style.stroke = color;
-    tex.textContent = btn.dataset.n;
-    thi.textContent = 'Tap to dismiss';
-    tct.style.color = '';
-    tfg.style.transition = 'none';
-    tfg.style.strokeDashoffset = '0';
-    requestAnimationFrame(() => { tfg.style.transition = 'stroke-dashoffset 1s linear'; });
-    renderFace();
-    tov.classList.add('open');
-    tiv = setInterval(tick, 1000);
-}
+function fmt(s) { return s >= 60 ? `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}` : `${s}s`; }
 
-function tick() {
+function openTimer(sec, name) {
+  clearInterval(tiv);
+  tTot = tRem = sec;
+  tname.textContent = name;
+  tcount.textContent = fmt(tRem);
+  tcount.style.color = '';
+  tring.style.stroke = BAR[PLAN[cur].color] || '#1D4AFF';
+  tsub.textContent = `of ${fmt(tTot)} rest`;
+  tring.style.transition = 'none';
+  tring.style.strokeDashoffset = '0';
+  requestAnimationFrame(() => { tring.style.transition = 'stroke-dashoffset 1s linear'; });
+  tdlg.classList.remove('pointer-events-none', 'opacity-0');
+  tiv = setInterval(() => {
     tRem--;
     if (tRem <= 0) {
-        clearInterval(tiv);
-        tfg.style.strokeDashoffset = C;
-        tct.textContent = 'Go!';
-        tct.style.color = tfg.style.stroke;
-        thi.textContent = 'Rest complete — tap to close';
-        beep(523,.2,.15); setTimeout(()=>beep(659,.18,.15),155); setTimeout(()=>beep(784,.15,.25),310);
-        if (navigator.vibrate) navigator.vibrate([150,80,200]);
+      clearInterval(tiv);
+      tring.style.strokeDashoffset = TC;
+      tcount.textContent = 'Go!';
+      tcount.style.color = '#F54E00';
+      tsub.textContent = 'rest complete';
+      beep(523,.2,.15); setTimeout(()=>beep(659,.18,.15),155); setTimeout(()=>beep(784,.15,.25),310);
+      if (navigator.vibrate) navigator.vibrate([150,80,200]);
     } else {
-        tfg.style.strokeDashoffset = C * (tRem / tTot);
-        renderFace();
+      tring.style.strokeDashoffset = TC * (tRem / tTot);
+      tcount.textContent = fmt(tRem);
     }
+  }, 1000);
 }
 
-function renderFace() {
-    const m = Math.floor(tRem/60), s = tRem % 60;
-    tct.textContent = m > 0 ? `${m}:${String(s).padStart(2,'0')}` : `${tRem}s`;
-    tsb.textContent = `of ${fmtTime(tTot)} rest`;
+function closeTimer() {
+  clearInterval(tiv);
+  tdlg.classList.add('pointer-events-none', 'opacity-0');
 }
-function fmtTime(s) { return s >= 60 ? `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}` : `${s}s`; }
-function closeTimer() { clearInterval(tiv); tov.classList.remove('open'); }
 
 let actx;
 function beep(freq, gain, dur) {
-    try {
-        if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
-        const o = actx.createOscillator(), g = actx.createGain();
-        o.connect(g); g.connect(actx.destination);
-        o.type = 'sine'; o.frequency.value = freq;
-        g.gain.setValueAtTime(gain, actx.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + dur);
-        o.start(); o.stop(actx.currentTime + dur);
-    } catch(_) {}
+  try {
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.connect(g); g.connect(actx.destination);
+    o.type = 'sine'; o.frequency.value = freq;
+    g.gain.setValueAtTime(gain, actx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + dur);
+    o.start(); o.stop(actx.currentTime + dur);
+  } catch(_) {}
 }
 </script>
 </body>
