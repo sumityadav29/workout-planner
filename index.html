@@ -61,7 +61,7 @@ tailwind.config = {
     <div class="mt-1 flex items-end justify-between gap-4">
       <div>
         <h1 class="text-3xl font-black tracking-tight">Summit</h1>
-        <p class="mt-1 text-sm font-medium text-gray2">4 lifts + 2 runs weekly · built different 🦔</p>
+        <p class="mt-1 text-sm font-medium text-gray2">4 lifts + 2 runs weekly · built different <svg class="-mt-0.5 inline h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 3 4 8 5-5 5 15H2L8 3z"/></svg></p>
       </div>
       <button id="syncbtn" class="ph-btn hidden h-9 shrink-0 items-center rounded-md border-[1.5px] border-ink bg-white px-3 text-[13px] font-bold text-ink hover:bg-tan-dark" onclick="openSync()">Sync</button>
     </div>
@@ -350,7 +350,7 @@ function render() {
       ${auxEl('Cool-down', d.cd, 'mt-1')}
       ${checked === total && total > 0 ? `
         <div class="mt-4 flex items-center justify-between rounded-md border-[1.5px] border-ink bg-hyellow px-4 py-3">
-          <p class="text-sm font-extrabold">Workout complete 🦔</p>
+          <p class="text-sm font-extrabold">Workout complete <svg class="-mt-0.5 inline h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 3 4 8 5-5 5 15H2L8 3z"/></svg></p>
           <button class="ph-btn inline-flex h-8 items-center rounded border-[1.5px] border-ink bg-white px-3 text-xs font-bold hover:bg-tan" onclick="resetDay()">Reset</button>
         </div>` : ''}`;
   } else {
