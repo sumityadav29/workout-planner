@@ -16,3 +16,17 @@ create policy "select own rows" on public.progress for select using (auth.uid() 
 create policy "insert own rows" on public.progress for insert with check (auth.uid() = user_id);
 create policy "update own rows" on public.progress for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "delete own rows" on public.progress for delete using (auth.uid() = user_id);
+
+-- Per-user workout plans (same JSON shape as the DEFAULT_PLAN array in index.html).
+-- The app seeds this row on first sign-in; edit the jsonb in the dashboard to customize.
+create table public.plans (
+  user_id    uuid primary key default auth.uid() references auth.users (id) on delete cascade,
+  plan       jsonb not null,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.plans enable row level security;
+
+create policy "select own plan" on public.plans for select using (auth.uid() = user_id);
+create policy "insert own plan" on public.plans for insert with check (auth.uid() = user_id);
+create policy "update own plan" on public.plans for update using (auth.uid() = user_id) with check (auth.uid() = user_id);

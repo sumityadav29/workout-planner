@@ -163,7 +163,10 @@ tailwind.config = {
 </div>
 
 <script>
-const PLAN = [
+// Default plan — used signed-out and before a per-user plan is fetched.
+// Per-user plans live in the Supabase `plans` table (one jsonb row per user,
+// same shape as this array) and are cached locally under `wp-plan`.
+const DEFAULT_PLAN = [
   {
     day: 'Monday', type: 'Push', color: 'horange', time: '~60 min',
     wu: '5 min · arm circles, band pull-aparts, 2 ramp-up bench sets',
@@ -250,6 +253,15 @@ const PLAN = [
   },
 ];
 
+function loadCachedPlan() {
+  try {
+    const p = JSON.parse(localStorage.getItem('wp-plan'));
+    if (Array.isArray(p) && p.length === 7 && p.every(x => x && x.day && x.type)) return p;
+  } catch (_) {}
+  return null;
+}
+let PLAN = loadCachedPlan() || DEFAULT_PLAN;
+
 const BADGE = {
   horange: 'bg-horange/10 text-horange border-horange/30',
   hblue:   'bg-hblue/10 text-hblue border-hblue/30',
@@ -268,7 +280,7 @@ function daySlots(d) {
   const runSlot = d.run && d.type !== 'Rest' ? 1 : 0;
   return runSlot + (d.sections ? d.sections.flatMap(s => s.ex).length : 0);
 }
-const done = PLAN.map(d => Array(daySlots(d)).fill(false));
+let done = PLAN.map(d => Array(daySlots(d)).fill(false));
 const TODAY = [6,0,1,2,3,4,5][new Date().getDay()];
 let cur = TODAY;
 const unlocked = new Set();   // days manually made editable this session; today is always editable
@@ -544,6 +556,31 @@ async function pushDay(day) {
 }
 function flushPending() { [...pending].forEach(pushDay); }
 
+function initPlan(p) {
+  PLAN = p;
+  done = PLAN.map(d => Array(daySlots(d)).fill(false));
+  pending = new Set();
+  loadLocal();   // re-hydrate this week's saved progress onto the new shapes
+  render();
+  renderCal();
+  setStartBtn();
+}
+
+async function pullPlan() {
+  if (!sb || !user) return;
+  const { data, error } = await sb.from('plans').select('plan').maybeSingle();
+  if (error) return;
+  if (!data) {
+    // first sign-in: seed the row with the current plan so it's editable in the Supabase dashboard
+    await sb.from('plans').insert({ user_id: user.id, plan: PLAN });
+    return;
+  }
+  const p = data.plan;
+  if (!Array.isArray(p) || p.length !== 7 || !p.every(x => x && x.day && x.type)) return;
+  try { localStorage.setItem('wp-plan', JSON.stringify(p)); } catch (_) {}
+  if (JSON.stringify(p) !== JSON.stringify(PLAN)) initPlan(p);
+}
+
 async function pullAll() {
   if (!sb || !user) return;
   const { data, error } = await sb.from('progress').select('week,day,done');
@@ -633,7 +670,6 @@ async function signOut() {
 // ---- Views & month calendar ----
 let calY = new Date().getFullYear(), calM = new Date().getMonth();
 
-function dayTotal(wd) { return daySlots(PLAN[wd]); }
 function dayState(dt) {
   const wd = (dt.getDay() + 6) % 7;
   const wk = isoWeek(dt);
@@ -641,7 +677,8 @@ function dayState(dt) {
   if (!arr) return null;
   const c = arr.filter(Boolean).length;
   if (!c) return null;
-  return c >= dayTotal(wd) ? 'complete' : 'partial';
+  // judge each day by its own stored slots, so past weeks stay correct across plan changes
+  return c >= arr.length ? 'complete' : 'partial';
 }
 function calShift(n) {
   calM += n;
@@ -679,10 +716,13 @@ window.addEventListener('hashchange', () => showView(location.hash === '#workout
 function startToday() { cur = TODAY; render(); go('workout'); }
 
 // ---- Init ----
+function setStartBtn() {
+  document.getElementById('startbtn').textContent =
+    PLAN[TODAY].type === 'Rest' ? 'Rest day — view plan →' : `Start today's workout · ${PLAN[TODAY].type} →`;
+}
 loadLocal();
 render();
-document.getElementById('startbtn').textContent =
-  PLAN[TODAY].type === 'Rest' ? 'Rest day — view plan →' : `Start today's workout · ${PLAN[TODAY].type} →`;
+setStartBtn();
 showView(location.hash === '#workout' ? 'workout' : 'home');
 
 try {
@@ -691,7 +731,7 @@ try {
     const prev = user && user.id;
     user = (session && session.user) || null;
     setSyncUi();
-    if (user && user.id !== prev) pullAll();
+    if (user && user.id !== prev) pullPlan().then(pullAll); // plan first so done[] shapes match
   });
 } catch (_) {} // CDN blocked or offline: app still works locally
 

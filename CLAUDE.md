@@ -10,7 +10,9 @@ Deployment is GitLab Pages: `.gitlab-ci.yml` copies `index.html` into `public/` 
 
 ## Architecture
 
-`index.html` is a PostHog-styled page using the Tailwind CDN with a custom theme config (inline `tailwind.config`), plus vanilla JS. Content is **data-driven**: a `PLAN` array of day objects — `sections`/`ex` for lift days, `run` for cardio/rest days — rendered into `#panel` via template strings in `render()`. Edit the workout plan (exercises, sets, rest times, warm-ups/cool-downs) by editing `PLAN`, not the markup.
+`index.html` is a PostHog-styled page using the Tailwind CDN with a custom theme config (inline `tailwind.config`), plus vanilla JS. Content is **data-driven**: a `PLAN` array of day objects — `sections`/`ex` for lift days, `run` for cardio/rest days — rendered into `#panel` via template strings in `render()`.
+
+`PLAN` is **per-user**: the hardcoded array is only `DEFAULT_PLAN` (the signed-out/first-run fallback — edit it, not the markup, for default-plan changes). Signed in, `pullPlan()` fetches the user's row from the Supabase `plans` table (one `jsonb` row per user, same shape as `DEFAULT_PLAN`; seeded automatically on first sign-in), caches it in localStorage `wp-plan`, and `initPlan()` rebuilds `done`/re-renders when it differs. There is no in-app plan editor — users edit their `plan` jsonb in the Supabase dashboard. Past calendar days are judged by their own stored slot arrays (`dayState`), so plan changes never rewrite history.
 
 It's a two-view SPA with hash routing (`#home`/`#workout`, `showView()`/`go()`):
 
