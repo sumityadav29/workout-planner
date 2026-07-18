@@ -104,7 +104,7 @@ tailwind.config = {
 <div id="sdlg" class="pointer-events-none fixed inset-0 z-50 flex items-center justify-center opacity-0 transition-opacity duration-200">
   <div class="absolute inset-0 bg-ink/70" onclick="closeSync()"></div>
   <div class="relative mx-4 w-full max-w-xs rounded-lg border-[1.5px] border-ink bg-tan p-6 shadow-ph-btn">
-    <h3 class="text-lg font-black tracking-tight">Sync across devices</h3>
+    <h3 id="stitle" class="text-lg font-black tracking-tight">Sync across devices</h3>
     <div id="sout">
       <p class="mt-2 text-sm font-medium text-gray2">Sign in with email and password. First time? The same form creates your account.</p>
       <input id="semail" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com"
@@ -115,7 +115,14 @@ tailwind.config = {
       <button id="ssignup" class="ph-btn mt-2 hidden h-10 w-full items-center justify-center rounded-md border-[1.5px] border-ink bg-white text-sm font-extrabold text-ink hover:bg-tan-dark" onclick="signUp()">Create account</button>
     </div>
     <div id="sin" class="hidden">
-      <p class="mt-2 text-sm font-medium text-gray2">Signed in as <span id="swho" class="font-bold text-ink"></span>. Progress syncs to all your devices.</p>
+      <div class="mt-4 flex items-center gap-3 rounded-md border-[1.5px] border-smoke bg-white px-3 py-3">
+        <span id="savatar" class="grid h-10 w-10 shrink-0 place-items-center rounded-full border-[1.5px] border-ink bg-hblue text-base font-extrabold text-white"></span>
+        <div class="min-w-0">
+          <p id="swho" class="truncate text-sm font-bold"></p>
+          <p id="sstat" class="mt-0.5 flex items-center gap-1.5 font-mono text-[11px] font-semibold text-gray2"></p>
+        </div>
+      </div>
+      <p class="mt-3 text-xs font-medium text-gray2">Progress syncs to every device you're signed in on.</p>
       <button class="ph-btn mt-4 inline-flex h-10 w-full items-center justify-center rounded-md border-[1.5px] border-ink bg-white text-sm font-extrabold text-ink hover:bg-tan-dark" onclick="signOut()">Sign out</button>
     </div>
     <p id="smsg" class="mt-3 text-center font-mono text-[11px] font-semibold text-gray2"></p>
@@ -423,6 +430,7 @@ function saveLocal() {
 function persist(day) {
   pending.add(day);
   saveLocal();
+  syncStatus();
   pushDay(day);
 }
 
@@ -431,7 +439,7 @@ async function pushDay(day) {
   const { error } = await sb.from('progress').upsert(
     { user_id: user.id, week: WEEK, day, done: done[day], updated_at: new Date().toISOString() },
     { onConflict: 'user_id,week,day' });
-  if (!error) { pending.delete(day); saveLocal(); }
+  if (!error) { pending.delete(day); saveLocal(); syncStatus(); }
 }
 function flushPending() { [...pending].forEach(pushDay); }
 
@@ -455,12 +463,29 @@ const smsg = document.getElementById('smsg');
 const syncbtn = document.getElementById('syncbtn');
 
 function setSyncUi() {
-  syncbtn.classList.remove('hidden');
-  syncbtn.classList.add('inline-flex');
-  syncbtn.textContent = user ? 'Synced ✓' : 'Sync';
+  if (user) {
+    const initial = (user.email || '?')[0].toUpperCase();
+    syncbtn.className = 'ph-btn relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-[1.5px] border-ink bg-hblue text-sm font-extrabold text-white';
+    syncbtn.innerHTML = `${initial}<span id="sdot" class="absolute -right-1 -top-1 h-3 w-3 rounded-full border-[1.5px] border-ink"></span>`;
+    document.getElementById('stitle').textContent = 'Account';
+    document.getElementById('savatar').textContent = initial;
+    document.getElementById('swho').textContent = user.email || '';
+  } else {
+    syncbtn.className = 'ph-btn inline-flex h-9 shrink-0 items-center rounded-md border-[1.5px] border-ink bg-white px-3 text-[13px] font-bold text-ink hover:bg-tan-dark';
+    syncbtn.textContent = 'Sign in';
+    document.getElementById('stitle').textContent = 'Sync across devices';
+  }
   document.getElementById('sout').classList.toggle('hidden', !!user);
   document.getElementById('sin').classList.toggle('hidden', !user);
-  if (user) document.getElementById('swho').textContent = user.email || '';
+  syncStatus();
+}
+
+function syncStatus() {
+  const n = pending.size;
+  const dot = document.getElementById('sdot');
+  if (dot) dot.style.background = n ? '#F9BD2B' : '#6AA84F';
+  const stat = document.getElementById('sstat');
+  if (stat) stat.textContent = n ? `${n} day${n > 1 ? 's' : ''} waiting to sync` : 'All changes synced';
 }
 function openSync() { smsg.textContent = ''; sdlg.classList.remove('pointer-events-none', 'opacity-0'); }
 function closeSync() { sdlg.classList.add('pointer-events-none', 'opacity-0'); }
