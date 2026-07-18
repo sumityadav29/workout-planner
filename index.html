@@ -438,9 +438,9 @@ function beep(freq, gain, dur) {
 // ---- Persistence: localStorage first, Supabase sync on top ----
 const SUPA_URL = 'https://qmlncjxzpzdsieznmcfi.supabase.co';
 const SUPA_KEY = 'sb_publishable_C1Vxg-ww6YanbMnxwbUuRw_uvLg6LWU';
-const LS_KEY = 'wp-progress-v2';
+const LS_KEY = 'wp-progress';
 const WEEK = isoWeek(new Date());
-let hist = {};             // week -> { done: [[bool]], pending: [day,...] }; WEEK's live copy mirrors `done`
+let hist = {};             // week -> [[bool]] for past weeks, in-memory only, filled from Supabase
 let pending = new Set();   // current-week day indices with local changes not yet pushed
 let sb = null, user = null;
 
@@ -453,26 +453,25 @@ function isoWeek(d) {
 }
 
 function loadLocal() {
+  try { // migrate the short-lived v2 multi-week format back to single-week
+    const s2 = JSON.parse(localStorage.getItem('wp-progress-v2'));
+    const cw = s2 && s2.weeks && s2.weeks[WEEK];
+    if (cw && !localStorage.getItem(LS_KEY))
+      localStorage.setItem(LS_KEY, JSON.stringify({ week: WEEK, done: cw.done, pending: cw.pending || [] }));
+    localStorage.removeItem('wp-progress-v2');
+  } catch (_) {}
   try {
     const s = JSON.parse(localStorage.getItem(LS_KEY));
-    if (s && s.weeks) hist = s.weeks;
+    if (!s || s.week !== WEEK) return;   // stale week: start fresh
+    (s.done || []).forEach((arr, d) => {
+      if (Array.isArray(arr) && done[d])
+        arr.slice(0, done[d].length).forEach((v, i) => done[d][i] = !!v);
+    });
+    pending = new Set(s.pending || []);
   } catch (_) {}
-  try { // migrate v1 single-week format
-    const s1 = JSON.parse(localStorage.getItem('wp-progress'));
-    if (s1 && s1.week && !hist[s1.week]) hist[s1.week] = { done: s1.done, pending: s1.pending || [] };
-    localStorage.removeItem('wp-progress');
-  } catch (_) {}
-  const cw = hist[WEEK];
-  if (!cw) return;
-  (cw.done || []).forEach((arr, d) => {
-    if (Array.isArray(arr) && done[d])
-      arr.slice(0, done[d].length).forEach((v, i) => done[d][i] = !!v);
-  });
-  pending = new Set(cw.pending || []);
 }
 function saveLocal() {
-  hist[WEEK] = { done, pending: [...pending] };
-  try { localStorage.setItem(LS_KEY, JSON.stringify({ weeks: hist })); } catch (_) {}
+  try { localStorage.setItem(LS_KEY, JSON.stringify({ week: WEEK, done, pending: [...pending] })); } catch (_) {}
 }
 function persist(day) {
   pending.add(day);
@@ -481,29 +480,14 @@ function persist(day) {
   pushDay(day);
 }
 
-async function pushRow(week, day, arr) {
-  if (!sb || !user) return false;
-  const { error } = await sb.from('progress').upsert(
-    { user_id: user.id, week, day, done: arr, updated_at: new Date().toISOString() },
-    { onConflict: 'user_id,week,day' });
-  return !error;
-}
 async function pushDay(day) {
-  if (await pushRow(WEEK, day, done[day])) { pending.delete(day); saveLocal(); syncStatus(); }
+  if (!sb || !user) return;
+  const { error } = await sb.from('progress').upsert(
+    { user_id: user.id, week: WEEK, day, done: done[day], updated_at: new Date().toISOString() },
+    { onConflict: 'user_id,week,day' });
+  if (!error) { pending.delete(day); saveLocal(); syncStatus(); }
 }
-function flushPending() {
-  [...pending].forEach(pushDay);
-  Object.keys(hist).filter(w => w !== WEEK).forEach(w => {
-    [...(hist[w].pending || [])].forEach(async d => {
-      const arr = (hist[w].done || [])[d];
-      if (!arr || await pushRow(w, d, arr)) {
-        hist[w].pending = (hist[w].pending || []).filter(x => x !== d);
-        saveLocal();
-        syncStatus();
-      }
-    });
-  });
-}
+function flushPending() { [...pending].forEach(pushDay); }
 
 async function pullAll() {
   if (!sb || !user) return;
@@ -515,8 +499,7 @@ async function pullAll() {
       if (pending.has(row.day) || !done[row.day]) return;
       row.done.slice(0, done[row.day].length).forEach((v, i) => done[row.day][i] = !!v);
     } else {
-      const w = hist[row.week] = hist[row.week] || { done: [], pending: [] };
-      if (!(w.pending || []).includes(row.day)) w.done[row.day] = row.done;
+      (hist[row.week] = hist[row.week] || [])[row.day] = row.done;
     }
   });
   saveLocal();
@@ -549,8 +532,7 @@ function setSyncUi() {
 }
 
 function syncStatus() {
-  const n = pending.size + Object.keys(hist).filter(w => w !== WEEK)
-    .reduce((s, w) => s + (hist[w].pending || []).length, 0);
+  const n = pending.size;
   const dot = document.getElementById('sdot');
   if (dot) dot.style.background = n ? '#F9BD2B' : '#6AA84F';
   const stat = document.getElementById('sstat');
@@ -603,7 +585,7 @@ function dayTotal(wd) {
 function dayState(dt) {
   const wd = (dt.getDay() + 6) % 7;
   const wk = isoWeek(dt);
-  const arr = wk === WEEK ? done[wd] : hist[wk] && hist[wk].done && hist[wk].done[wd];
+  const arr = wk === WEEK ? done[wd] : hist[wk] && hist[wk][wd];
   if (!arr) return null;
   const c = arr.filter(Boolean).length;
   if (!c) return null;
