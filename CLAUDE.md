@@ -22,6 +22,7 @@ Conventions:
 - Day indices are 0=Monday…6=Sunday; "today" is computed as `[6,0,1,2,3,4,5][new Date().getDay()]`.
 - The `done` completion arrays are built by `daySlots()`: **slot 0 is the run** if the day has one (the "Mark run complete" button, so cardio shows on the calendar), followed by one slot per exercise; the rest day has none. Days can be run-only, lift-only, or hybrid (`run` + `sections`, e.g. intervals + core) — `render()` composes the run block and checklist from whichever fields exist, offsetting exercise toggle indices by 1 when a run slot is present.
 - Each day has an accent color (`color` field, mapped through the `BADGE` and `BAR` lookup tables).
+- The first unchecked slot is the "current activity": `render()` gives that row (or the run block) the day-accent tint, checkbox ring, and a Next chip via `nextIdx`, and tags it `id="nextrow"`. Checking a slot smooth-scrolls to the new next (`scrollToNext()`); a finished rest timer auto-closes after 1.5s and pulses it (`pulseNext()`, `.pulse-next` keyframes).
 - Rest timer overlay (SVG ring countdown, `openTimer`/`closeTimer`) with WebAudio `beep()` chimes and `navigator.vibrate` haptics. Rest durations are seconds in the `rs` field; the human-readable label is `r` (a `null` `r` renders "no rest →" for superset members, tagged via `ss`).
 
 ## Persistence and sync

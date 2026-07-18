@@ -50,6 +50,8 @@ tailwind.config = {
   .row[data-done=true] { opacity:.6; }
   .ph-btn { box-shadow:0 3px 0 0 rgba(0,0,0,.30); transition: transform .08s, box-shadow .08s; }
   .ph-btn:active { transform:translateY(2px); box-shadow:0 1px 0 0 rgba(0,0,0,.30); }
+  @keyframes nextpulse { 0% { box-shadow:0 0 0 0 var(--pulse,rgba(29,74,255,.5)); } 100% { box-shadow:0 0 0 14px rgba(0,0,0,0); } }
+  .pulse-next { animation:nextpulse .8s ease-out 2; }
 </style>
 </head>
 <body class="font-sans text-ink antialiased">
@@ -297,17 +299,21 @@ function render() {
     const total = done[cur].length;
     const checked = done[cur].filter(Boolean).length;
     const pct = total ? Math.round((checked / total) * 100) : 0;
+    const nextIdx = done[cur].indexOf(false);   // first unchecked slot = current activity
+    const accent = BAR[d.color];
+    const nextChip = `<span class="ml-1.5 rounded border-[1.5px] px-1 py-px font-mono text-[9px] font-bold uppercase tracking-wide" style="color:${accent};border-color:${accent}66">Next</span>`;
 
     let idx = 0;
     const sectionsHtml = (d.sections || []).map(sec => {
       const rows = sec.ex.map(ex => {
         const i = off + idx++;
         const isDone = done[cur][i];
+        const isNext = i === nextIdx;
         return `
-        <div class="row flex items-center gap-3 py-3" data-done="${isDone}">
-          <button class="cb flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded border-[1.5px] border-ink bg-white" data-state="${isDone ? 'checked' : 'unchecked'}" onclick="toggle(${i})" aria-label="Mark ${ex.n} done">${CHECK}</button>
+        <div class="row flex items-center gap-3 py-3${isNext ? ' -mx-2 rounded-md px-2' : ''}" data-done="${isDone}"${isNext ? ` id="nextrow" style="background:${accent}0F;--pulse:${accent}88"` : ''}>
+          <button class="cb flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded border-[1.5px] border-ink bg-white" data-state="${isDone ? 'checked' : 'unchecked'}"${isNext ? ` style="border-color:${accent}"` : ''} onclick="toggle(${i})" aria-label="Mark ${ex.n} done">${CHECK}</button>
           <div class="min-w-0 flex-1">
-            <p class="ex-title truncate text-sm font-bold leading-tight">${ex.n}${ex.ss ? ` <span class="ml-1 rounded border border-smoke bg-tan px-1 py-px font-mono text-[9px] font-bold text-gray2">${ex.ss}</span>` : ''}</p>
+            <p class="ex-title truncate text-sm font-bold leading-tight">${ex.n}${ex.ss ? ` <span class="ml-1 rounded border border-smoke bg-tan px-1 py-px font-mono text-[9px] font-bold text-gray2">${ex.ss}</span>` : ''}${isNext ? nextChip : ''}</p>
             <p class="mt-0.5 truncate text-xs font-medium text-gray2">${ex.m}</p>
           </div>
           <div class="shrink-0 text-right">
@@ -331,9 +337,10 @@ function render() {
     }).join('');
 
     const runDone = hasRun && !!done[cur][0];
+    const runNext = hasRun && nextIdx === 0;
     const runHtml = hasRun ? `
-      <div class="mt-1 rounded-md border-[1.5px] border-smoke bg-tan p-5">
-        <h3 class="text-sm font-extrabold">${d.run.title}</h3>
+      <div class="mt-1 rounded-md border-[1.5px] ${runNext ? '' : 'border-smoke'} bg-tan p-5"${runNext ? ` id="nextrow" style="border-color:${accent};--pulse:${accent}88"` : ''}>
+        <h3 class="text-sm font-extrabold">${d.run.title}${runNext ? nextChip : ''}</h3>
         <p class="mt-2 text-sm font-medium leading-relaxed text-gray2">${d.run.desc}</p>
         <button class="ph-btn mt-4 inline-flex h-10 w-full items-center justify-center rounded-md border-[1.5px] border-ink ${runDone ? 'bg-hyellow text-ink' : 'bg-hgreen text-white'} text-sm font-extrabold hover:brightness-105" onclick="toggle(0)">${runDone ? 'Run complete ✓ · tap to undo' : 'Mark run complete'}</button>
       </div>` : '';
@@ -374,6 +381,20 @@ function toggle(i) {
   if (done[cur][i] && navigator.vibrate) navigator.vibrate(22);
   persist(cur);
   render();
+  if (done[cur][i]) requestAnimationFrame(scrollToNext);
+}
+
+function scrollToNext() {
+  const el = document.getElementById('nextrow');
+  if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+function pulseNext() {
+  const el = document.getElementById('nextrow');
+  if (!el) return;
+  scrollToNext();
+  el.classList.remove('pulse-next');
+  void el.offsetWidth;   // restart the animation
+  el.classList.add('pulse-next');
 }
 function resetDay() { done[cur] = done[cur].map(() => false); persist(cur); render(); }
 
@@ -390,12 +411,13 @@ const tcount = document.getElementById('tcount');
 const tsub = document.getElementById('tsub');
 const tname = document.getElementById('tname');
 tring.style.strokeDasharray = TC;
-let tiv = null, tRem = 0, tTot = 0;
+let tiv = null, tRem = 0, tTot = 0, tdone = null;
 
 function fmt(s) { return s >= 60 ? `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}` : `${s}s`; }
 
 function openTimer(sec, name) {
   clearInterval(tiv);
+  clearTimeout(tdone);
   tTot = tRem = sec;
   tname.textContent = name;
   tcount.textContent = fmt(tRem);
@@ -416,6 +438,7 @@ function openTimer(sec, name) {
       tsub.textContent = 'rest complete';
       beep(523,.2,.15); setTimeout(()=>beep(659,.18,.15),155); setTimeout(()=>beep(784,.15,.25),310);
       if (navigator.vibrate) navigator.vibrate([150,80,200]);
+      tdone = setTimeout(() => { closeTimer(); pulseNext(); }, 1500); // hand off to the next activity
     } else {
       tring.style.strokeDashoffset = TC * (tRem / tTot);
       tcount.textContent = fmt(tRem);
@@ -425,6 +448,7 @@ function openTimer(sec, name) {
 
 function closeTimer() {
   clearInterval(tiv);
+  clearTimeout(tdone);
   tdlg.classList.add('pointer-events-none', 'opacity-0');
 }
 
