@@ -11,6 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Source+Code+Pro:wght@500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
 <script>
 tailwind.config = {
   theme: {
@@ -54,6 +55,9 @@ tailwind.config = {
   .ph-btn:active { transform:translateY(2px); box-shadow:0 1px 0 0 rgba(0,0,0,.30); }
   @keyframes nextpulse { 0% { box-shadow:0 0 0 0 var(--pulse,rgba(29,74,255,.5)); } 100% { box-shadow:0 0 0 14px rgba(0,0,0,0); } }
   .pulse-next { animation:nextpulse .8s ease-out 2; }
+  .sortable-ghost { opacity:.35; }
+  .sortable-chosen { background:#fff; box-shadow:0 2px 0 0 #D0D1C9; border-radius:8px; }
+  .sortable-drag { background:#fff; }
 </style>
 </head>
 <body class="font-sans text-ink antialiased">
@@ -333,7 +337,7 @@ function render() {
     const accent = BAR[d.color];
 
     let idx = 0;
-    const sectionsHtml = (d.sections || []).map(sec => {
+    const sectionsHtml = (d.sections || []).map((sec, si) => {
       const rows = sec.ex.map(ex => {
         const i = off + idx++;
         const isDone = done[cur][i];
@@ -354,7 +358,7 @@ function render() {
               : '<p class="mt-0.5 font-mono text-[11px] font-semibold text-horange">no rest →</p>'}
           </div>
         </div>`;
-      }).join('<div class="h-px bg-smoke/70"></div>');
+      }).join('');
 
       const divider = sec.label ? `
         <div class="flex items-center gap-3 pt-4 pb-1">
@@ -362,7 +366,7 @@ function render() {
           <span class="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-gray2">${sec.label}</span>
           <div class="h-px flex-1 bg-smoke"></div>
         </div>` : '';
-      return divider + rows;
+      return divider + `<div class="divide-y divide-smoke/70" data-sec="${si}">${rows}</div>`;
     }).join('');
 
     const runDone = hasRun && !!done[cur][0];
@@ -405,6 +409,36 @@ function render() {
 
   document.querySelectorAll('.tab-trigger').forEach((t, i) =>
     t.setAttribute('data-state', i === cur ? 'active' : 'inactive'));
+
+  initSortables();
+}
+
+// Tap-hold drag reordering (within a section, editable days only)
+function initSortables() {
+  if (typeof Sortable === 'undefined' || !isEditable(cur)) return;
+  document.querySelectorAll('#panel [data-sec]').forEach(el => {
+    new Sortable(el, {
+      animation: 150,
+      delay: 300,
+      delayOnTouchOnly: true,   // desktop drags start immediately; touch needs a hold
+      touchStartThreshold: 4,
+      onEnd: e => {
+        if (e.oldIndex !== e.newIndex) reorderEx(+el.dataset.sec, e.oldIndex, e.newIndex);
+      },
+    });
+  });
+}
+
+function reorderEx(si, from, to) {
+  const d = PLAN[cur];
+  const off = d.run && d.type !== 'Rest' ? 1 : 0;   // run occupies slot 0
+  let base = off;
+  for (let s = 0; s < si; s++) base += d.sections[s].ex.length;
+  d.sections[si].ex.splice(to, 0, d.sections[si].ex.splice(from, 1)[0]);
+  done[cur].splice(base + to, 0, done[cur].splice(base + from, 1)[0]); // checkmark travels with its exercise
+  persist(cur);
+  savePlan();
+  render();
 }
 
 function toggle(i) {
@@ -556,6 +590,27 @@ async function pushDay(day) {
 }
 function flushPending() { [...pending].forEach(pushDay); }
 
+let planDirty = false;
+try { planDirty = localStorage.getItem('wp-plan-dirty') === '1'; } catch (_) {}
+
+function savePlan() {
+  try {
+    localStorage.setItem('wp-plan', JSON.stringify(PLAN));
+    localStorage.setItem('wp-plan-dirty', '1');
+  } catch (_) {}
+  planDirty = true;
+  pushPlan();
+}
+async function pushPlan() {
+  if (!sb || !user || !planDirty) return;
+  const { error } = await sb.from('plans').upsert(
+    { user_id: user.id, plan: PLAN, updated_at: new Date().toISOString() });
+  if (!error) {
+    planDirty = false;
+    try { localStorage.removeItem('wp-plan-dirty'); } catch (_) {}
+  }
+}
+
 function initPlan(p) {
   PLAN = p;
   done = PLAN.map(d => Array(daySlots(d)).fill(false));
@@ -568,6 +623,7 @@ function initPlan(p) {
 
 async function pullPlan() {
   if (!sb || !user) return;
+  if (planDirty) { pushPlan(); return; }   // local edits win; server copy is stale
   const { data, error } = await sb.from('plans').select('plan').maybeSingle();
   if (error) return;
   if (!data) {
@@ -735,7 +791,7 @@ try {
   });
 } catch (_) {} // CDN blocked or offline: app still works locally
 
-window.addEventListener('online', flushPending);
+window.addEventListener('online', () => { flushPending(); pushPlan(); });
 </script>
 </body>
 </html>
