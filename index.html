@@ -301,7 +301,6 @@ function render() {
     const pct = total ? Math.round((checked / total) * 100) : 0;
     const nextIdx = done[cur].indexOf(false);   // first unchecked slot = current activity
     const accent = BAR[d.color];
-    const nextChip = `<span class="ml-1.5 rounded border-[1.5px] px-1 py-px font-mono text-[9px] font-bold uppercase tracking-wide" style="color:${accent};border-color:${accent}66">Next</span>`;
 
     let idx = 0;
     const sectionsHtml = (d.sections || []).map(sec => {
@@ -313,7 +312,7 @@ function render() {
         <div class="row flex items-center gap-3 py-3${isNext ? ' -mx-2 rounded-md px-2' : ''}" data-done="${isDone}"${isNext ? ` id="nextrow" style="background:${accent}0F;--pulse:${accent}88"` : ''}>
           <button class="cb flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded border-[1.5px] border-ink bg-white" data-state="${isDone ? 'checked' : 'unchecked'}"${isNext ? ` style="border-color:${accent}"` : ''} onclick="toggle(${i})" aria-label="Mark ${ex.n} done">${CHECK}</button>
           <div class="min-w-0 flex-1">
-            <p class="ex-title truncate text-sm font-bold leading-tight">${ex.n}${ex.ss ? ` <span class="ml-1 rounded border border-smoke bg-tan px-1 py-px font-mono text-[9px] font-bold text-gray2">${ex.ss}</span>` : ''}${isNext ? nextChip : ''}</p>
+            <p class="ex-title truncate text-sm font-bold leading-tight">${ex.n}${ex.ss ? ` <span class="ml-1 rounded border border-smoke bg-tan px-1 py-px font-mono text-[9px] font-bold text-gray2">${ex.ss}</span>` : ''}</p>
             <p class="mt-0.5 truncate text-xs font-medium text-gray2">${ex.m}</p>
           </div>
           <div class="shrink-0 text-right">
@@ -340,7 +339,7 @@ function render() {
     const runNext = hasRun && nextIdx === 0;
     const runHtml = hasRun ? `
       <div class="mt-1 rounded-md border-[1.5px] ${runNext ? '' : 'border-smoke'} bg-tan p-5"${runNext ? ` id="nextrow" style="border-color:${accent};--pulse:${accent}88"` : ''}>
-        <h3 class="text-sm font-extrabold">${d.run.title}${runNext ? nextChip : ''}</h3>
+        <h3 class="text-sm font-extrabold">${d.run.title}</h3>
         <p class="mt-2 text-sm font-medium leading-relaxed text-gray2">${d.run.desc}</p>
         <button class="ph-btn mt-4 inline-flex h-10 w-full items-center justify-center rounded-md border-[1.5px] border-ink ${runDone ? 'bg-hyellow text-ink' : 'bg-hgreen text-white'} text-sm font-extrabold hover:brightness-105" onclick="toggle(0)">${runDone ? 'Run complete ✓ · tap to undo' : 'Mark run complete'}</button>
       </div>` : '';
