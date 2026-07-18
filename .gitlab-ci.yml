@@ -3,6 +3,7 @@ pages:
   script:
     - mkdir public
     - cp index.html public/index.html
+    - cp apple-touch-icon.png public/apple-touch-icon.png
   artifacts:
     paths:
       - public
