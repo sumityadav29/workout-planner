@@ -174,13 +174,20 @@ const PLAN = [
     ]}]
   },
   {
-    day: 'Tuesday', type: 'Cardio', color: 'hteal', time: '30–40 min',
-    wu: '5 min brisk walk · leg swings · ankle circles',
+    day: 'Tuesday', type: 'Intervals + Core', color: 'hteal', time: '~40 min',
+    wu: '5 min easy jog · leg swings · high knees, A-skips',
     cd: '5 min walk · calf, hamstring + hip flexor stretches',
-    run: { title: 'Zone 2 Run', desc: '30–40 minutes at conversational pace (~65% max HR). You should be able to hold a full sentence — if you can\'t, slow down. Optimal for fat oxidation while preserving muscle.' }
+    run: { title: 'Interval Run', desc: '6–8 rounds of 1 min hard / 2 min easy jog. Hard means ~85–90% max HR — no more than a word or two at a time. Cut it to 6 rounds if form starts breaking down.' },
+    sections: [
+      { label: 'Core', ex: [
+        { n: 'Dead Bug', m: 'Transverse abdominis · APT fix', s: '3 × 8 /side', r: '45s', rs: 45 },
+        { n: 'Plank', m: 'Anterior core · Stability', s: '3 × 40 sec', r: '45s', rs: 45 },
+        { n: 'Hanging Leg Raise', m: 'Lower abs', s: '3 × 12–15', r: '60s', rs: 60 },
+      ]}
+    ]
   },
   {
-    day: 'Wednesday', type: 'Pull + Core', color: 'hblue', time: '~65 min',
+    day: 'Wednesday', type: 'Pull', color: 'hblue', time: '~50 min',
     wu: '5 min · dead hangs, scap pull-ups, light row ramp-ups',
     cd: '3 min · lat stretch on rack, child\'s pose',
     sections: [
@@ -190,11 +197,6 @@ const PLAN = [
         { n: 'Cable Seated Row', m: 'Mid back · Rear delts', s: '3 × 10–12', r: '90s', rs: 90 },
         { n: 'Face Pulls', m: 'Rear delts · Posture', s: '3 × 15–20', r: '60s', rs: 60 },
         { n: 'Barbell Curl', m: 'Biceps', s: '3 × 10–12', r: '60s', rs: 60 },
-      ]},
-      { label: 'Core', ex: [
-        { n: 'Dead Bug', m: 'Transverse abdominis · APT fix', s: '3 × 8 /side', r: '45s', rs: 45 },
-        { n: 'Plank', m: 'Anterior core · Stability', s: '3 × 40 sec', r: '45s', rs: 45 },
-        { n: 'Hanging Leg Raise', m: 'Lower abs', s: '3 × 12–15', r: '60s', rs: 60 },
       ]}
     ]
   },
@@ -233,10 +235,10 @@ const PLAN = [
     ]
   },
   {
-    day: 'Saturday', type: 'Cardio', color: 'hteal', time: '20–30 min',
-    wu: '5 min easy jog · leg swings · high knees, A-skips',
+    day: 'Saturday', type: 'Cardio', color: 'hteal', time: '25–35 min',
+    wu: '5 min brisk walk into easy jog · leg swings · 2–3 strides',
     cd: '5 min walk · calf, quad + hip flexor stretches',
-    run: { title: 'Intervals or Easy Jog', desc: '6–8 rounds of 1 min hard / 2 min easy if legs feel fresh. Keep it an easy Zone 2 jog if Thursday soreness lingers.' }
+    run: { title: '5K / Tempo Run', desc: 'Run 5K at tempo — comfortably hard (~80–85% max HR), a pace you could hold for an hour but wouldn\'t want to. If legs are still heavy from Thursday, cruise it as an easy jog instead.' }
   },
   {
     day: 'Sunday', type: 'Rest', color: 'gray2', time: null,
@@ -257,8 +259,12 @@ const BAR = {
   hpurple: '#B62AD9', hteal: '#29DBBB', gray2: '#8F8F8C',
 };
 
-// lift days: one slot per exercise; run days: a single completion slot; rest: none
-const done = PLAN.map(d => d.sections ? d.sections.flatMap(s => s.ex).map(() => false) : (d.type !== 'Rest' ? [false] : []));
+// slot 0 is the run (if the day has one), then one slot per exercise; rest day: none
+function daySlots(d) {
+  const runSlot = d.run && d.type !== 'Rest' ? 1 : 0;
+  return runSlot + (d.sections ? d.sections.flatMap(s => s.ex).length : 0);
+}
+const done = PLAN.map(d => Array(daySlots(d)).fill(false));
 const TODAY = [6,0,1,2,3,4,5][new Date().getDay()];
 let cur = TODAY;
 
@@ -284,16 +290,17 @@ function render() {
       <span class="rounded-md border-[1.5px] ${BADGE[d.color]} px-2.5 py-0.5 text-xs font-bold">${d.type}</span>
     </div>`;
 
-  if (d.sections) {
-    const flat = d.sections.flatMap(s => s.ex);
-    const total = flat.length;
+  if (d.sections || d.type !== 'Rest') {
+    const hasRun = !!d.run;
+    const off = hasRun ? 1 : 0;   // slot 0 is the run
+    const total = done[cur].length;
     const checked = done[cur].filter(Boolean).length;
-    const pct = Math.round((checked / total) * 100);
+    const pct = total ? Math.round((checked / total) * 100) : 0;
 
     let idx = 0;
-    const sectionsHtml = d.sections.map(sec => {
+    const sectionsHtml = (d.sections || []).map(sec => {
       const rows = sec.ex.map(ex => {
-        const i = idx++;
+        const i = off + idx++;
         const isDone = done[cur][i];
         return `
         <div class="row flex items-center gap-3 py-3" data-done="${isDone}">
@@ -322,38 +329,36 @@ function render() {
       return divider + rows;
     }).join('');
 
+    const runDone = hasRun && !!done[cur][0];
+    const runHtml = hasRun ? `
+      <div class="mt-1 rounded-md border-[1.5px] border-smoke bg-tan p-5">
+        <h3 class="text-sm font-extrabold">${d.run.title}</h3>
+        <p class="mt-2 text-sm font-medium leading-relaxed text-gray2">${d.run.desc}</p>
+        <button class="ph-btn mt-4 inline-flex h-10 w-full items-center justify-center rounded-md border-[1.5px] border-ink ${runDone ? 'bg-hyellow text-ink' : 'bg-hgreen text-white'} text-sm font-extrabold hover:brightness-105" onclick="toggle(0)">${runDone ? 'Run complete ✓ · tap to undo' : 'Mark run complete'}</button>
+      </div>` : '';
+
     inner = `
       ${headEl}
-      <p class="mt-1.5 font-mono text-xs font-semibold text-gray2">${checked}/${total} exercises · ${d.time}</p>
+      <p class="mt-1.5 font-mono text-xs font-semibold text-gray2">${checked}/${total} done · ${d.time}</p>
       <div class="mt-3 h-3 w-full overflow-hidden rounded border-[1.5px] border-ink bg-white">
         <div class="h-full transition-all duration-300" style="width:${pct}%;background:${BAR[d.color]}"></div>
       </div>
       ${auxEl('Warm-up', d.wu, 'mt-3')}
+      ${runHtml}
       <div class="mt-1">${sectionsHtml}</div>
       ${auxEl('Cool-down', d.cd, 'mt-1')}
-      ${checked === total ? `
+      ${checked === total && total > 0 ? `
         <div class="mt-4 flex items-center justify-between rounded-md border-[1.5px] border-ink bg-hyellow px-4 py-3">
           <p class="text-sm font-extrabold">Workout complete 🦔</p>
           <button class="ph-btn inline-flex h-8 items-center rounded border-[1.5px] border-ink bg-white px-3 text-xs font-bold hover:bg-tan" onclick="resetDay()">Reset</button>
         </div>` : ''}`;
   } else {
-    const canDo = d.type !== 'Rest';
-    const runDone = canDo && done[cur][0];
     inner = `
       ${headEl}
-      ${auxEl('Warm-up', d.wu, 'mt-5')}
-      <div class="mt-2 rounded-md border-[1.5px] border-smoke bg-tan p-5">
+      <div class="mt-5 rounded-md border-[1.5px] border-smoke bg-tan p-5">
         <h3 class="text-sm font-extrabold">${d.run.title}</h3>
         <p class="mt-2 text-sm font-medium leading-relaxed text-gray2">${d.run.desc}</p>
-        ${d.time ? `<p class="mt-3 font-mono text-[11px] font-bold uppercase tracking-wide text-gray2">Duration: ${d.time}</p>` : ''}
-      </div>
-      ${auxEl('Cool-down', d.cd, 'mt-2')}
-      ${!canDo ? '' : runDone ? `
-        <div class="mt-4 flex items-center justify-between rounded-md border-[1.5px] border-ink bg-hyellow px-4 py-3">
-          <p class="text-sm font-extrabold">Run complete 🦔</p>
-          <button class="ph-btn inline-flex h-8 items-center rounded border-[1.5px] border-ink bg-white px-3 text-xs font-bold hover:bg-tan" onclick="toggle(0)">Undo</button>
-        </div>` : `
-        <button class="ph-btn mt-4 inline-flex h-11 w-full items-center justify-center rounded-md border-[1.5px] border-ink bg-hgreen text-sm font-extrabold text-white hover:brightness-105" onclick="toggle(0)">Mark complete</button>`}`;
+      </div>`;
   }
 
   document.getElementById('panel').innerHTML = `
@@ -578,10 +583,7 @@ async function signOut() {
 // ---- Views & month calendar ----
 let calY = new Date().getFullYear(), calM = new Date().getMonth();
 
-function dayTotal(wd) {
-  const d = PLAN[wd];
-  return d.sections ? d.sections.flatMap(s => s.ex).length : (d.type !== 'Rest' ? 1 : 0);
-}
+function dayTotal(wd) { return daySlots(PLAN[wd]); }
 function dayState(dt) {
   const wd = (dt.getDay() + 6) % 7;
   const wk = isoWeek(dt);
