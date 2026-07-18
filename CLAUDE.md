@@ -12,17 +12,23 @@ Deployment is GitLab Pages: `.gitlab-ci.yml` copies `index.html` into `public/` 
 
 `index.html` is a PostHog-styled page using the Tailwind CDN with a custom theme config (inline `tailwind.config`), plus vanilla JS. Content is **data-driven**: a `PLAN` array of day objects — `sections`/`ex` for lift days, `run` for cardio/rest days — rendered into `#panel` via template strings in `render()`. Edit the workout plan (exercises, sets, rest times, warm-ups/cool-downs) by editing `PLAN`, not the markup.
 
+It's a two-view SPA with hash routing (`#home`/`#workout`, `showView()`/`go()`):
+
+- **Home** (default): a month calendar (`renderCal()`) marking each past day green (all of that day's slots checked) or yellow (some), computed by `dayState()` from current-week state plus the `hist` archive. Below it, a "Start today's workout" button jumps to today's tab in the workout view.
+- **Workout**: the day-tabs + exercise-checklist experience, with a "← Calendar" link back.
+
 Conventions:
 
 - Day indices are 0=Monday…6=Sunday; "today" is computed as `[6,0,1,2,3,4,5][new Date().getDay()]`.
+- The `done` completion arrays have one slot per exercise on lift days, a **single slot on run days** (the "Mark complete" button, so cardio shows on the calendar), and none on the rest day.
 - Each day has an accent color (`color` field, mapped through the `BADGE` and `BAR` lookup tables).
 - Rest timer overlay (SVG ring countdown, `openTimer`/`closeTimer`) with WebAudio `beep()` chimes and `navigator.vibrate` haptics. Rest durations are seconds in the `rs` field; the human-readable label is `r` (a `null` `r` renders "no rest →" for superset members, tagged via `ss`).
 
 ## Persistence and sync
 
-Checkbox state persists offline-first, keyed by ISO week (`isoWeek()`, e.g. `2026-W29`) so progress auto-resets each Monday:
+Checkbox state persists offline-first, keyed by ISO week (`isoWeek()`, e.g. `2026-W29`) so the workout view auto-resets each Monday while the calendar keeps history:
 
-- **localStorage** (`wp-progress`) is the source of truth: every `toggle()`/`resetDay()` calls `persist(day)`, which saves locally, marks the day in a `pending` set, and tries to push.
-- **Supabase** layers cross-device sync on top: email + password auth (Sync button in the header; the sign-in form doubles as sign-up — magic-link/OTP was abandoned because iOS home-screen apps can't receive the Safari session, and free-tier Supabase can't customize email templates to include an OTP code). One row per `(user_id, week, day)` in the `progress` table, upserted per day. On sign-in/load, `pullWeek()` fetches the week's rows — but days with pending local changes win over the server copy. Pending pushes are retried on the browser `online` event.
+- **localStorage** (`wp-progress-v2`: `{ weeks: { <isoWeek>: { done, pending } } }`, in-memory as `hist`; the old single-week `wp-progress` format is migrated on load) is the source of truth. Every `toggle()`/`resetDay()` calls `persist(day)`, which saves locally, marks the day in a `pending` set, and tries to push.
+- **Supabase** layers cross-device sync on top: email + password auth (Sign in button in the header becomes an avatar chip with a green/yellow sync-status dot; the sign-in form doubles as sign-up — magic-link/OTP was abandoned because iOS home-screen apps can't receive the Safari session, and free-tier Supabase can't customize email templates to include an OTP code). One row per `(user_id, week, day)` in the `progress` table, upserted per day. On sign-in/load, `pullAll()` fetches all weeks (history feeds the calendar) — but days with pending local changes win over the server copy. Pending pushes, including ones left over from past weeks, are retried on the browser `online` event.
 - The Supabase URL and publishable key are embedded in `index.html`; that's safe by design — access control is row-level security (see `supabase-setup.sql`, the one-time schema/policy setup run in the Supabase SQL editor; it is not deployed).
 - The app degrades gracefully: if the Supabase CDN script or network is unavailable, everything still works locally (client init is wrapped in try/catch; `pushDay` no-ops without a session).
