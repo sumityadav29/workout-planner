@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A static weekly workout plan app — a single self-contained `index.html` with no build step, package manager, tests, or linter. To run it, open the file directly or serve the repo root (e.g. `python3 -m http.server`).
+**Summit** — a static weekly workout plan app, — a single self-contained `index.html` with no build step, package manager, tests, or linter. To run it, open the file directly or serve the repo root (e.g. `python3 -m http.server`).
 
 Deployment is GitLab Pages: `.gitlab-ci.yml` copies `index.html` into `public/` on pushes to `main`. Any new file must be added to that CI script or it won't deploy.
 
